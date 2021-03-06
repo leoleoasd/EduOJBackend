@@ -3,13 +3,17 @@ package event
 import (
 	"github.com/pkg/errors"
 	"reflect"
+	"sync"
 )
 
+var eventLock = sync.RWMutex{}
 var listeners = map[string][]interface{}{}
 
 // RegisterListener registers a listener with a event name.
 // The listener should be a function.
 func RegisterListener(eventName string, listener interface{}) {
+	eventLock.Lock()
+	defer eventLock.Unlock()
 	listenerValue := reflect.ValueOf(listener)
 	if listenerValue.Kind() != reflect.Func {
 		panic("Trying to register a non-func listener!")
@@ -22,6 +26,8 @@ func RegisterListener(eventName string, listener interface{}) {
 // Returns a slice of results, each result is a slice of interface {},
 // representing the return value of each call.
 func FireEvent(eventName string, args ...interface{}) (result [][]interface{}, err error) {
+	eventLock.RLock()
+	defer eventLock.RUnlock()
 	defer func() {
 		if p := recover(); p != nil {
 			result = nil

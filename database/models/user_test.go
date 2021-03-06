@@ -1,8 +1,7 @@
 package models
 
 import (
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/database"
+	"github.com/EduOJ/backend/base"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -20,7 +19,8 @@ func (c TestClass) GetID() uint {
 }
 
 func TestUser_GrantRole(t *testing.T) {
-	t.Cleanup(database.SetupDatabaseForTest())
+	t.Parallel()
+
 	u := User{
 		Username: "test_user_grant_role",
 		Nickname: "test_user_grant_role",
@@ -48,7 +48,8 @@ func TestUser_GrantRole(t *testing.T) {
 }
 
 func TestCan(t *testing.T) {
-	t.Cleanup(database.SetupDatabaseForTest())
+	t.Parallel()
+
 	base.DB.AutoMigrate(&TestClass{})
 	classA := TestClass{}
 	classB := TestClass{}

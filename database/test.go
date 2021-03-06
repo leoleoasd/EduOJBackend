@@ -2,21 +2,17 @@ package database
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/base"
+	"github.com/EduOJ/backend/base"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"sync"
 )
-
-var testDatabaseLock = sync.Mutex{}
 
 // SetupDatabaseForTest setups a in-memory db for testing purpose.
 // Shouldn't be called out of test.
 func SetupDatabaseForTest() func() {
-	testDatabaseLock.Lock()
 	oldDB := base.DB
-	x, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+	x, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
 		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
@@ -34,6 +30,5 @@ func SetupDatabaseForTest() func() {
 	Migrate()
 	return func() {
 		base.DB = oldDB
-		testDatabaseLock.Unlock()
 	}
 }

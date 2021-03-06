@@ -3,8 +3,8 @@ package models
 import (
 	"encoding/binary"
 	"encoding/json"
+	"github.com/EduOJ/backend/base"
 	"github.com/duo-labs/webauthn/webauthn"
-	"github.com/leoleoasd/EduOJBackend/base"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"time"
@@ -22,6 +22,8 @@ type User struct {
 
 	ClassesManaging []*Class `json:"class_managing" gorm:"many2many:user_manage_classes"`
 	ClassesTaking   []*Class `json:"class_taking" gorm:"many2many:user_in_classes"`
+
+	Grades []*Grade `json:"grades"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"-"`

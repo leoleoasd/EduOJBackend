@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/EduOJ/backend/app"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/event"
+	"github.com/EduOJ/backend/base/exit"
+	"github.com/EduOJ/backend/base/log"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/base/validator"
+	"github.com/EduOJ/backend/database"
+	runEvent "github.com/EduOJ/backend/event/run"
+	submissionEvent "github.com/EduOJ/backend/event/submission"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/leoleoasd/EduOJBackend/app"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/exit"
-	"github.com/leoleoasd/EduOJBackend/base/log"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/base/validator"
-	"github.com/leoleoasd/EduOJBackend/database"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
@@ -45,6 +48,12 @@ func initLog() {
 		os.Exit(-1)
 	}
 	log.Debug("Logging initialized.")
+}
+
+func initEvent() {
+	log.Debug("Initializing Event System.")
+	event.RegisterListener("run", runEvent.NotifyGetSubmissionPoll)
+	event.RegisterListener("submission", submissionEvent.UpdateGrade)
 }
 
 func startEcho() {

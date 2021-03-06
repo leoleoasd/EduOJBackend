@@ -1,19 +1,21 @@
 package models
 
 import (
-	"github.com/leoleoasd/EduOJBackend/base"
+	"github.com/EduOJ/backend/base"
 	"gorm.io/gorm"
 	"time"
 )
 
 type Class struct {
-	ID          uint   `gorm:"primaryKey" json:"id"`
-	Name        string `json:"name" gorm:"size:255;default:'';not null"`
-	CourseName  string `json:"course_name" gorm:"size:255;default:'';not null"`
-	Description string `json:"description"`
-	InviteCode  string `json:"invite_code" gorm:"size:255;default:'';not null"`
-	Managers    []User `json:"managers" gorm:"many2many:user_manage_classes"`
-	Students    []User `json:"students" gorm:"many2many:user_in_classes"`
+	ID          uint    `gorm:"primaryKey" json:"id"`
+	Name        string  `json:"name" gorm:"size:255;default:'';not null"`
+	CourseName  string  `json:"course_name" gorm:"size:255;default:'';not null"`
+	Description string  `json:"description"`
+	InviteCode  string  `json:"invite_code" gorm:"size:255;default:'';not null"`
+	Managers    []*User `json:"managers" gorm:"many2many:user_manage_classes"`
+	Students    []*User `json:"students" gorm:"many2many:user_in_classes"`
+
+	ProblemSets []*ProblemSet `json:"problem_sets"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"-"`
@@ -34,7 +36,11 @@ func (c *Class) AddStudents(ids []uint) error {
 		existingIds[i] = s.ID
 	}
 	var users []User
-	if err := base.DB.Not("id in ?", existingIds).Find(&users, ids).Error; err != nil {
+	query := base.DB
+	if len(existingIds) != 0 {
+		query = base.DB.Where("id not in (?)", existingIds)
+	}
+	if err := query.Find(&users, ids).Error; err != nil {
 		return err
 	}
 	return base.DB.Model(c).Association("Students").Append(&users)
@@ -46,4 +52,8 @@ func (c *Class) DeleteStudents(ids []uint) error {
 		return err
 	}
 	return base.DB.Model(c).Association("Students").Delete(&users)
+}
+
+func (c *Class) AfterDelete(tx *gorm.DB) (err error) {
+	return tx.Delete(&ProblemSet{}, "class_id = ?", c.ID).Error
 }

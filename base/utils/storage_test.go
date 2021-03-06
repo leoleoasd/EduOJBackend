@@ -3,7 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
-	"github.com/leoleoasd/EduOJBackend/base"
+	"github.com/EduOJ/backend/base"
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"

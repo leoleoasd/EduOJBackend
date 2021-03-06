@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/leoleoasd/EduOJBackend/database"
+	"github.com/EduOJ/backend/database"
 	"time"
 )
 

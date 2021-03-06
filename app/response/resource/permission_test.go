@@ -2,9 +2,9 @@ package resource_test
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"testing"

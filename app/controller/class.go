@@ -1,13 +1,13 @@
 package controller
 
 import (
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"net/http"
@@ -25,10 +25,10 @@ func CreateClass(c echo.Context) error {
 		CourseName:  req.CourseName,
 		Description: req.Description,
 		InviteCode:  utils.GenerateInviteCode(),
-		Managers: []models.User{
-			user,
+		Managers: []*models.User{
+			&user,
 		},
-		Students: []models.User{},
+		Students: []*models.User{},
 	}
 	utils.PanicIfDBError(base.DB.Create(&class), "could not create class")
 	user.GrantRole("class_creator", class)
@@ -100,7 +100,7 @@ func GetClassesIManage(c echo.Context) error {
 func GetClassesITake(c echo.Context) error {
 	user := c.Get("user").(models.User)
 	var classes []models.Class
-	if err := base.DB.Model(&user).Association("ClassesTaking").Find(&classes); err != nil {
+	if err := base.DB.Model(&user).Preload("ProblemSets").Association("ClassesTaking").Find(&classes); err != nil {
 		panic(errors.Wrap(err, "could not find class taking"))
 	}
 	return c.JSON(http.StatusOK, response.GetClassesITakeResponse{
@@ -228,15 +228,12 @@ func JoinClass(c echo.Context) error {
 		return err
 	}
 	class := models.Class{}
-	if err := base.DB.Preload("Managers").Preload("Students").First(&class, c.Param("id")).Error; err != nil {
+	if err := base.DB.Preload("Managers").Preload("Students").First(&class, "invite_code = ?", req.InviteCode).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return c.JSON(http.StatusNotFound, response.ErrorResp("NOT_FOUND", nil))
 		} else {
 			panic(errors.Wrap(err, "could not find class for deleting students"))
 		}
-	}
-	if class.InviteCode != req.InviteCode {
-		return c.JSON(http.StatusForbidden, response.ErrorResp("WRONG_INVITE_CODE", nil))
 	}
 	user := c.Get("user").(models.User)
 	count := base.DB.Model(&class).Where("id = ?", user.ID).Association("Students").Count()
@@ -259,9 +256,10 @@ func JoinClass(c echo.Context) error {
 
 func DeleteClass(c echo.Context) error {
 	class := models.Class{}
-	if err := base.DB.Delete(&class, c.Param("id")).Error; err != nil {
+	if err := base.DB.First(&class, c.Param("id")).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		panic(errors.Wrap(err, "could not find class for deleting"))
 	}
+	utils.PanicIfDBError(base.DB.Delete(&class), "could not delete class for deleting")
 	return c.JSON(http.StatusOK, response.Response{
 		Message: "SUCCESS",
 		Error:   nil,

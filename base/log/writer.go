@@ -5,10 +5,10 @@ import (
 	"github.com/fatih/color"
 	"strings"
 
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/event"
-	"github.com/leoleoasd/EduOJBackend/base/exit"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/event"
+	"github.com/EduOJ/backend/base/exit"
+	"github.com/EduOJ/backend/database/models"
 )
 
 // Writers should only be used in this package.
@@ -45,7 +45,7 @@ func (w *consoleWriter) log(l Log) {
 	if l.Level >= w.Level {
 		fmt.Print(colors[l.Level]("[%s][%s] ▶ %s ",
 			l.Time.Format("15:04:05"),
-			strings.Replace(l.Caller, "github.com/leoleoasd/EduOJBackend/", "", -1),
+			strings.Replace(l.Caller, "github.com/EduOJ/backend/", "", -1),
 			l.Level.String()),
 			l.Message,
 			"\n")

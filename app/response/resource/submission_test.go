@@ -2,8 +2,8 @@ package resource_test
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -76,6 +76,7 @@ func TestGetRunAndGetRunSlice(t *testing.T) {
 			MemoryUsed:   1024,
 			TimeUsed:     1000,
 			CreatedAt:    time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+			UpdatedAt:    time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 		}
 		assert.Equal(t, &expectedRun, actualRun)
 	})
@@ -96,6 +97,7 @@ func TestGetRunAndGetRunSlice(t *testing.T) {
 				MemoryUsed:   1024,
 				TimeUsed:     1000,
 				CreatedAt:    time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+				UpdatedAt:    time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 			}, {
 				ID:           3,
 				UserID:       3,
@@ -110,6 +112,7 @@ func TestGetRunAndGetRunSlice(t *testing.T) {
 				MemoryUsed:   1024,
 				TimeUsed:     1000,
 				CreatedAt:    time.Date(3, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+				UpdatedAt:    time.Date(3, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 			},
 		}
 		assert.Equal(t, expectedRunSlice, actualRunSlice)
@@ -136,6 +139,8 @@ func TestGetSubmissionAndGetSubmissionDetail(t *testing.T) {
 			Score:        1,
 			Status:       "test_get_submission_submission_1_status",
 			CreatedAt:    time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+
+			UpdatedAt: time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 		}
 		assert.Equal(t, expectedSubmission, *actualSubmission)
 	})
@@ -169,6 +174,7 @@ func TestGetSubmissionAndGetSubmissionDetail(t *testing.T) {
 					MemoryUsed:   1024,
 					TimeUsed:     1000,
 					CreatedAt:    time.Date(0, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+					UpdatedAt:    time.Date(0, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 				},
 				{
 					ID:           1,
@@ -184,9 +190,11 @@ func TestGetSubmissionAndGetSubmissionDetail(t *testing.T) {
 					MemoryUsed:   1024,
 					TimeUsed:     1000,
 					CreatedAt:    time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+					UpdatedAt:    time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 				},
 			},
 			CreatedAt: time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+			UpdatedAt: time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 		}
 		assert.Equal(t, &expectedSubmission, actualSubmission)
 	})
@@ -218,6 +226,8 @@ func TestGetSubmissionSliceAndGetSubmissionDetailSlice(t *testing.T) {
 				Score:        1,
 				Status:       "test_get_submission_submission_1_status",
 				CreatedAt:    time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+
+				UpdatedAt: time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 			}, {
 				ID:           2,
 				UserID:       2,
@@ -230,6 +240,7 @@ func TestGetSubmissionSliceAndGetSubmissionDetailSlice(t *testing.T) {
 				Score:        2,
 				Status:       "test_get_submission_submission_2_status",
 				CreatedAt:    time.Date(2, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+				UpdatedAt:    time.Date(2, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 			},
 		}
 		assert.Equal(t, expectedSubmissionSlice, actualSubmissionSlice)
@@ -265,6 +276,7 @@ func TestGetSubmissionSliceAndGetSubmissionDetailSlice(t *testing.T) {
 						MemoryUsed:   1024,
 						TimeUsed:     1000,
 						CreatedAt:    time.Date(0, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+						UpdatedAt:    time.Date(0, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 					},
 					{
 						ID:           1,
@@ -280,9 +292,11 @@ func TestGetSubmissionSliceAndGetSubmissionDetailSlice(t *testing.T) {
 						MemoryUsed:   1024,
 						TimeUsed:     1000,
 						CreatedAt:    time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+						UpdatedAt:    time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 					},
 				},
 				CreatedAt: time.Date(1, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+				UpdatedAt: time.Date(1, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 			}, {
 				ID:           2,
 				UserID:       2,
@@ -311,9 +325,11 @@ func TestGetSubmissionSliceAndGetSubmissionDetailSlice(t *testing.T) {
 						MemoryUsed:   1024,
 						TimeUsed:     1000,
 						CreatedAt:    time.Date(0, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+						UpdatedAt:    time.Date(0, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 					},
 				},
 				CreatedAt: time.Date(2, 1, 1, 1, 1, 1, 1, time.FixedZone("test_zone", 0)),
+				UpdatedAt: time.Date(2, 2, 2, 2, 2, 2, 2, time.FixedZone("test_zone", 0)),
 			},
 		}
 		assert.Equal(t, expectedSubmissionSlice, actualSubmissionSlice)

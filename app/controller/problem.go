@@ -2,16 +2,17 @@ package controller
 
 import (
 	"fmt"
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/minio/minio-go/v7"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ func GetProblem(c echo.Context) error {
 	} else if err != nil {
 		panic(err)
 	}
-	if user.Can("read_problem", problem) {
+	if user.Can("read_problem_secrets", problem) || user.Can("read_problem_secrets") {
 		return c.JSON(http.StatusOK, response.GetProblemResponseForAdmin{
 			Message: "SUCCESS",
 			Error:   nil,
@@ -53,7 +54,11 @@ func GetProblems(c echo.Context) error {
 		return err
 	}
 
-	query := base.DB.Model(&models.Problem{}).Order("id ASC") // Force order by id asc.
+	if req.Tried && req.Passed {
+		return c.JSON(http.StatusBadRequest, response.ErrorResp("INVALID_STATUS", nil))
+	}
+
+	query := base.DB.Model(&models.Problem{}).Order("id ASC").Omit("Description") // Force order by id asc.
 
 	user := c.Get("user").(models.User)
 	isAdmin := user.Can("manage_problem")
@@ -66,7 +71,34 @@ func GetProblems(c echo.Context) error {
 		query = query.Where("id = ? or name like ?", id, "%"+req.Search+"%")
 	}
 
-	var problems []models.Problem
+	where := (*gorm.DB)(nil)
+
+	if req.Passed {
+		where = base.DB.Where("id in (?)", base.DB.Table("submissions").
+			Select("problem_id").
+			Where("status = 'ACCEPTED' and user_id = ?", req.UserID).
+			Group("problem_id"))
+	}
+
+	if req.Tried {
+		where = base.DB.Where("id not in (?)",
+			base.DB.Table("submissions").
+				Select("problem_id").
+				Where("status = 'ACCEPTED' and user_id = ?", req.UserID).
+				Group("problem_id"),
+		).Where("id in (?)",
+			base.DB.Table("submissions").
+				Select("problem_id").
+				Where("status <> 'ACCEPTED' and user_id = ?", req.UserID).
+				Group("problem_id"),
+		)
+	}
+
+	if where != nil {
+		query = query.Where(where)
+	}
+
+	var problems []*models.Problem
 	total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &problems)
 	if err != nil {
 		if herr, ok := err.(utils.HttpError); ok {
@@ -469,5 +501,63 @@ func DeleteTestCases(c echo.Context) error {
 		Message: "SUCCESS",
 		Error:   nil,
 		Data:    nil,
+	})
+}
+
+func GetRandomProblem(c echo.Context) error {
+	var count int64
+	utils.PanicIfDBError(base.DB.Find(&models.Problem{}, "public = true").Count(&count),
+		"could not get count of public problems for getting random problem")
+	if count == 0 {
+		return c.JSON(http.StatusNotFound, response.ErrorResp("NOT_FOUND", nil))
+	}
+	problem := models.Problem{}
+	utils.PanicIfDBError(base.DB.Limit(1).Offset(rand.Intn(int(count))).Find(&problem),
+		"could not get problem for getting random problem")
+	return c.JSON(http.StatusOK, response.GetRandomProblemResponse{
+		Message: "SUCCESS",
+		Error:   nil,
+		Data: struct {
+			*resource.Problem `json:"problem"`
+		}{
+			resource.GetProblem(&problem),
+		},
+	})
+}
+
+func GetUserProblemInfo(c echo.Context) error {
+	userID := c.Param("id")
+	var passedCount, triedCount int64
+
+	utils.PanicIfDBError(base.DB.Model(&models.Problem{}).
+		Where("id in (?)", base.DB.Table("submissions").
+			Select("problem_id").
+			Where("status = 'ACCEPTED' and user_id = ?", userID).
+			Group("problem_id")).
+		Count(&passedCount), "could not get count of passed problems for getting user problem info")
+
+	utils.PanicIfDBError(base.DB.Model(&models.Problem{}).
+		Where("id not in (?)", base.DB.Table("submissions").
+			Select("problem_id").
+			Where("status = 'ACCEPTED' and user_id = ?", userID).
+			Group("problem_id"),
+		).Where("id in (?)", base.DB.Table("submissions").
+		Select("problem_id").
+		Where("status <> 'ACCEPTED' and user_id = ?", userID).
+		Group("problem_id")).
+		Count(&triedCount), "could not get count of tried problems for getting user problem info")
+
+	return c.JSON(http.StatusOK, response.GetUserProblemInfoResponse{
+		Message: "SUCCESS",
+		Error:   nil,
+		Data: struct {
+			TriedCount  int `json:"tried_count"`
+			PassedCount int `json:"passed_count"`
+			Rank        int `json:"rank"`
+		}{
+			TriedCount:  int(triedCount),
+			PassedCount: int(passedCount),
+			Rank:        0, // TODO: develop this
+		},
 	})
 }

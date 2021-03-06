@@ -1,12 +1,12 @@
 package log
 
 import (
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/event"
+	"github.com/EduOJ/backend/base/exit"
+	"github.com/EduOJ/backend/database"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/kami-zh/go-capturer"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/event"
-	"github.com/leoleoasd/EduOJBackend/base/exit"
-	"github.com/leoleoasd/EduOJBackend/database"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

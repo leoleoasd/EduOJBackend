@@ -6,22 +6,23 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/EduOJ/backend/app"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/exit"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/base/validator"
+	"github.com/EduOJ/backend/database"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/exit"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/base/validator"
-	"github.com/leoleoasd/EduOJBackend/database"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -31,6 +32,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 var applyAdminUser headerOption
@@ -107,6 +109,14 @@ func setUserForTest(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Set("user", user)
 		return next(c)
 	}
+}
+
+func hashStringToTime(s string) time.Time {
+	h := fnv.New32()
+	if _, err := h.Write([]byte(s)); err != nil {
+		panic(err)
+	}
+	return time.Unix(int64(h.Sum32()), 0).UTC()
 }
 
 type failTest struct {
@@ -323,6 +333,22 @@ func getPresignedURLContent(t *testing.T, presignedUrl string) (content string) 
 	p, err := ioutil.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	return string(p)
+}
+
+func getObjectContent(t *testing.T, bucketName, objectName string) (content []byte) {
+	obj, err := base.Storage.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
+	assert.NoError(t, err)
+	content, err = ioutil.ReadAll(obj)
+	assert.NoError(t, err)
+	return
+}
+
+func checkObjectNonExist(t *testing.T, bucketName, objectName string) {
+	obj, err := base.Storage.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
+	assert.NoError(t, err)
+	_, err = ioutil.ReadAll(obj)
+	assert.NotNil(t, err)
+	assert.Equal(t, "The specified key does not exist.", err.Error())
 }
 
 func TestMain(m *testing.M) {

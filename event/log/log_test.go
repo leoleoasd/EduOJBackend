@@ -1,8 +1,8 @@
 package log
 
 import (
-	"github.com/leoleoasd/EduOJBackend/base/event"
-	"github.com/leoleoasd/EduOJBackend/base/log"
+	"github.com/EduOJ/backend/base/event"
+	"github.com/EduOJ/backend/base/log"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

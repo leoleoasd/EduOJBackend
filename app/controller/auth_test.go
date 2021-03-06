@@ -1,12 +1,12 @@
 package controller_test
 
 import (
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"

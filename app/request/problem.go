@@ -62,7 +62,17 @@ type GetProblemRequest struct {
 
 type GetProblemsRequest struct {
 	Search string `json:"search" form:"search" query:"search"`
+	UserID uint   `json:"user_id" form:"user_id" query:"user_id" validate:"min=0,required_with=Tried Passed"`
 
 	Limit  int `json:"limit" form:"limit" query:"limit" validate:"max=100,min=0"`
 	Offset int `json:"offset" form:"offset" query:"offset" validate:"min=0"`
+
+	Tried  bool `json:"tried" form:"tried" query:"tried"`
+	Passed bool `json:"passed" form:"passed" query:"passed"`
+}
+
+type GetRandomProblem struct {
+}
+
+type GetUserProblemInfo struct {
 }

@@ -3,9 +3,10 @@ package controller_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/database"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
@@ -14,7 +15,9 @@ import (
 
 func TestGetTask(t *testing.T) {
 	// Not parallel
-	assert.NoError(t, base.DB.Delete(&models.Run{}, "id > 0").Error)
+	t.Cleanup(database.SetupDatabaseForTest())
+	initGeneralTestingUsers()
+
 	user := createUserForTest(t, "get_task", 1)
 	problem := createProblemForTest(t, "get_task", 1, nil, user)
 	submission := createSubmissionForTest(t, "test_task", 1, &problem, &user, newFileContent(

@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
+	"github.com/EduOJ/backend/app/response/resource"
 )
 
 type CreateSubmissionResponse struct {

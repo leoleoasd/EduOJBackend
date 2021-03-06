@@ -2,8 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"github.com/EduOJ/backend/app/response"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/response"
 )
 
 type HttpError struct {

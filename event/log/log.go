@@ -1,6 +1,6 @@
 package log
 
-import "github.com/leoleoasd/EduOJBackend/base/log"
+import "github.com/EduOJ/backend/base/log"
 
 // EventArgs is the arguments of "log" event.
 // Only contains the log itself.

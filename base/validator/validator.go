@@ -1,11 +1,11 @@
 package validator
 
 import (
+	"github.com/EduOJ/backend/base/log"
+	zhTranslations "github.com/EduOJ/backend/base/validator/translations/zh"
 	zhLocal "github.com/go-playground/locales/zh"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-	"github.com/leoleoasd/EduOJBackend/base/log"
-	zhTranslations "github.com/leoleoasd/EduOJBackend/base/validator/translations/zh"
 	"github.com/pkg/errors"
 	"regexp"
 )

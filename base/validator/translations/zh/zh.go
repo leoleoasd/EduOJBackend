@@ -42,6 +42,15 @@ var FieldTranslations = map[string]string{
 	"CourseName":         "课程名称",
 	"UserIds":            "用户ID数组",
 	"InviteCode":         "邀请码",
+	"StartTime":          "开始时间",
+	"EndTime":            "结束时间",
+	"SourceClassID":      "复制源班级ID",
+	"SourceProblemSetID": "复制源题目组ID",
+	"ProblemIDs":         "题目ID数组",
+	"Language":           "语言",
+	"UserID":             "用户ID",
+	"Tried":              "选取尝试过题目",
+	"Passed":             "选取通过题目",
 }
 
 // RegisterDefaultTranslations registers a set of default translations
@@ -986,8 +995,7 @@ func RegisterDefaultTranslations(v *validator.Validate, trans ut.Translator) (er
 			translation: "{0}必须大于或等于{1}",
 			override:    false,
 			customTransFunc: func(ut ut.Translator, fe validator.FieldError) string {
-
-				t, err := ut.T(fe.Tag(), FieldTranslations[fe.Field()], fe.Param())
+				t, err := ut.T(fe.Tag(), FieldTranslations[fe.Field()], FieldTranslations[fe.Param()])
 				if err != nil {
 					log.Printf("警告: 翻译字段错误: %#v", fe)
 					return fe.(error).Error()
@@ -1163,6 +1171,28 @@ func RegisterDefaultTranslations(v *validator.Validate, trans ut.Translator) (er
 			customTransFunc: func(ut ut.Translator, fe validator.FieldError) string {
 
 				t, err := ut.T(fe.Tag(), FieldTranslations[fe.Field()], fe.Param())
+				if err != nil {
+					log.Printf("警告: 翻译字段错误: %#v", fe)
+					return fe.(error).Error()
+				}
+
+				return t
+			},
+		}, {
+			tag:         "required_with",
+			translation: "当{0}不为空时，{1}为必填字段",
+			override:    false,
+			customTransFunc: func(ut ut.Translator, fe validator.FieldError) string {
+
+				params := strings.Split(fe.Param(), " ")
+				param := ""
+				for i, p := range params {
+					if i > 0 {
+						param += "或"
+					}
+					param += FieldTranslations[p]
+				}
+				t, err := ut.T(fe.Tag(), param, FieldTranslations[fe.Field()])
 				if err != nil {
 					log.Printf("警告: 翻译字段错误: %#v", fe)
 					return fe.(error).Error()

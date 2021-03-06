@@ -2,12 +2,12 @@ package utils
 
 import (
 	"context"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/log"
+	validator2 "github.com/EduOJ/backend/base/validator"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/log"
-	validator2 "github.com/leoleoasd/EduOJBackend/base/validator"
 	"github.com/minio/minio-go/v7"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -24,7 +24,7 @@ func PanicIfDBError(db *gorm.DB, message string) {
 func BindAndValidate(req interface{}, c echo.Context) (err error, ok bool) {
 	// TODO: return a HttpError instead of writing to response.
 	if err := c.Bind(req); err != nil {
-		panic(err)
+		return c.JSON(http.StatusBadRequest, response.ErrorResp("BAD_REQUEST_PARAMETER", nil)), false
 	}
 	if err := c.Validate(req); err != nil {
 		if e, ok := err.(validator.ValidationErrors); ok {

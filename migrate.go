@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/base/log"
-	"github.com/leoleoasd/EduOJBackend/database"
+	"github.com/EduOJ/backend/base/log"
+	"github.com/EduOJ/backend/database"
 )
 
 func doMigrate() {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/leoleoasd/EduOJBackend/base/log"
+	"github.com/EduOJ/backend/base/log"
 	"os"
 )
 

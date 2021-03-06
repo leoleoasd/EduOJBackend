@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"github.com/EduOJ/backend/app/response"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/response"
 	"github.com/spf13/viper"
 	"net/http"
 )

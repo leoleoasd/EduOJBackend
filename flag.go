@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/EduOJ/backend/base/log"
 	"github.com/jessevdk/go-flags"
-	"github.com/leoleoasd/EduOJBackend/base/log"
 	"github.com/pkg/errors"
 	"os"
 )

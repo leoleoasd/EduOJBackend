@@ -1,6 +1,6 @@
 package response
 
-import "github.com/leoleoasd/EduOJBackend/app/response/resource"
+import "github.com/EduOJ/backend/app/response/resource"
 
 type CreateClassResponse struct {
 	Message string      `json:"message"`

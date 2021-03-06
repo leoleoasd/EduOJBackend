@@ -1,13 +1,13 @@
 package controller
 
 import (
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"net/http"
@@ -143,7 +143,7 @@ func AdminGetUsers(c echo.Context) error {
 		id, _ := strconv.ParseUint(req.Search, 10, 64)
 		query = query.Where("id = ? or username like ? or email like ? or nickname like ?", id, "%"+req.Search+"%", "%"+req.Search+"%", "%"+req.Search+"%")
 	}
-	var users []models.User
+	var users []*models.User
 	total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &users)
 	if err != nil {
 		if herr, ok := err.(utils.HttpError); ok {

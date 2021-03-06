@@ -1,15 +1,15 @@
 package middleware_test
 
 import (
+	"github.com/EduOJ/backend/app/middleware"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/middleware"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/stretchr/testify/assert"
 	"time"
 
-	"github.com/leoleoasd/EduOJBackend/base"
+	"github.com/EduOJ/backend/base"
 	"net/http"
 	"testing"
 )

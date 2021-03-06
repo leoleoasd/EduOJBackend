@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/database/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

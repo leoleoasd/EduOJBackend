@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/leoleoasd/EduOJBackend/base/exit"
-	"github.com/leoleoasd/EduOJBackend/base/log"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
+	"github.com/EduOJ/backend/base/exit"
+	"github.com/EduOJ/backend/base/log"
+	"github.com/EduOJ/backend/base/utils"
 	"os"
 )
 

@@ -1,15 +1,16 @@
 package controller
 
 import (
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"net/http"
 	"strconv"
 )
@@ -55,7 +56,7 @@ func GetUsers(c echo.Context) error {
 	if err, ok := utils.BindAndValidate(req, c); !ok {
 		return err
 	}
-	var users []models.User
+	var users []*models.User
 	var total int
 
 	query, err := utils.Sorter(base.DB.Model(&models.User{}), req.OrderBy, "id", "username", "nickname", "email")
@@ -125,7 +126,7 @@ func UpdateMe(c echo.Context) error {
 	user.Username = req.Username
 	user.Nickname = req.Nickname
 	user.Email = req.Email
-	utils.PanicIfDBError(base.DB.Save(&user), "could not update user")
+	utils.PanicIfDBError(base.DB.Omit(clause.Associations).Save(&user), "could not update user")
 	return c.JSON(http.StatusOK, response.UpdateMeResponse{
 		Message: "SUCCESS",
 		Error:   nil,

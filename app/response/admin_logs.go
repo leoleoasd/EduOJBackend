@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/database/models"
 )
 
 type AdminGetLogsResponse struct {

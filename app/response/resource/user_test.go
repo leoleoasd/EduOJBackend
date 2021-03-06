@@ -1,8 +1,8 @@
 package resource_test
 
 import (
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -59,6 +59,7 @@ func TestGetUserGetUserForAdminAndGetUserSlice(t *testing.T) {
 					TargetID: 2,
 				},
 			},
+			Grades: []resource.Grade{},
 		}
 		assert.Equal(t, expectedUser, *actualUser)
 	})
@@ -67,8 +68,8 @@ func TestGetUserGetUserForAdminAndGetUserSlice(t *testing.T) {
 		assert.Equal(t, emptyUser, *resource.GetUserForAdmin(nil))
 	})
 	t.Run("testGetUserSlice", func(t *testing.T) {
-		actualUserSlice := resource.GetUserSlice([]models.User{
-			user1, user2,
+		actualUserSlice := resource.GetUserSlice([]*models.User{
+			&user1, &user2,
 		})
 		expectedUserSlice := []resource.User{
 			{

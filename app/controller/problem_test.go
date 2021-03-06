@@ -3,12 +3,13 @@ package controller_test
 import (
 	"context"
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/minio/minio-go/v7"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -31,14 +32,6 @@ type testCaseData struct {
 	Sample     bool
 	InputFile  *fileContent
 	OutputFile *fileContent
-}
-
-func getObjectContent(t *testing.T, bucketName, objectName string) (content []byte) {
-	obj, err := base.Storage.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
-	assert.NoError(t, err)
-	content, err = ioutil.ReadAll(obj)
-	assert.NoError(t, err)
-	return
 }
 
 func createProblemForTest(t *testing.T, name string, id int, attachmentFile *fileContent, creator models.User) (problem models.Problem) {
@@ -292,26 +285,31 @@ func TestGetProblem(t *testing.T) {
 
 func TestGetProblems(t *testing.T) {
 	t.Parallel()
+
 	problem1 := models.Problem{
 		Name:               "test_get_problems_1",
+		Description:        "test_get_problems_1_description",
 		AttachmentFileName: "test_get_problems_1_attachment_file_name",
 		LanguageAllowed:    []string{"test_get_problems_1_language_allowed"},
 		Public:             true,
 	}
 	problem2 := models.Problem{
 		Name:               "test_get_problems_2",
+		Description:        "test_get_problems_2_description",
 		AttachmentFileName: "test_get_problems_2_attachment_file_name",
 		LanguageAllowed:    []string{"test_get_problems_2_language_allowed"},
 		Public:             true,
 	}
 	problem3 := models.Problem{
 		Name:               "test_get_problems_3",
+		Description:        "test_get_problems_3_description",
 		AttachmentFileName: "test_get_problems_3_attachment_file_name",
 		LanguageAllowed:    []string{"test_get_problems_3_language_allowed"},
 		Public:             true,
 	}
 	problem4 := models.Problem{
 		Name:               "test_get_problems_4",
+		Description:        "test_get_problems_4_description",
 		AttachmentFileName: "test_get_problems_4_attachment_file_name",
 		LanguageAllowed:    []string{"test_get_problems_4_language_allowed"},
 		Public:             false,
@@ -321,13 +319,93 @@ func TestGetProblems(t *testing.T) {
 	assert.NoError(t, base.DB.Create(&problem3).Error)
 	assert.NoError(t, base.DB.Create(&problem4).Error)
 
+	user := createUserForTest(t, "get_problems_submitter", 0)
+	otherUser := createUserForTest(t, "get_problems_submitter", 1)
+	submissionPassed1 := createSubmissionForTest(t, "get_problems_1_passed", 1, &problem1, &user, nil, 0)
+	submissionPassed2 := createSubmissionForTest(t, "get_problems_1_passed", 2, &problem1, &otherUser, nil, 0)
+	submissionPassed3 := createSubmissionForTest(t, "get_problems_2_passed", 3, &problem2, &user, nil, 0)
+	submissionPassed4 := createSubmissionForTest(t, "get_problems_2_passed", 4, &problem2, &user, nil, 0)
+	submissionPassed1.Status = "ACCEPTED"
+	submissionPassed2.Status = "ACCEPTED"
+	submissionPassed3.Status = "ACCEPTED"
+	submissionPassed4.Status = "ACCEPTED"
+	assert.NoError(t, base.DB.Save(&submissionPassed1).Error)
+	assert.NoError(t, base.DB.Save(&submissionPassed2).Error)
+	assert.NoError(t, base.DB.Save(&submissionPassed3).Error)
+	assert.NoError(t, base.DB.Save(&submissionPassed4).Error)
+
+	submissionFailed1 := createSubmissionForTest(t, "get_problems_1_failed", 1, &problem1, &otherUser, nil, 0)
+	submissionFailed2 := createSubmissionForTest(t, "get_problems_2_failed", 2, &problem2, &user, nil, 0)
+	submissionFailed3 := createSubmissionForTest(t, "get_problems_3_failed", 3, &problem3, &user, nil, 0)
+	submissionFailed4 := createSubmissionForTest(t, "get_problems_3_failed", 4, &problem3, &user, nil, 0)
+	submissionFailed1.Status = "WRONG_ANSWER"
+	submissionFailed2.Status = "TIME_LIMIT_EXCEEDED"
+	submissionFailed3.Status = "RUNTIME_ERROR"
+	submissionFailed4.Status = "PENDING"
+	assert.NoError(t, base.DB.Save(&submissionFailed1).Error)
+	assert.NoError(t, base.DB.Save(&submissionFailed2).Error)
+	assert.NoError(t, base.DB.Save(&submissionFailed3).Error)
+	assert.NoError(t, base.DB.Save(&submissionFailed4).Error)
+
+	failTests := []failTest{
+		{
+			name:   "InvalidStatus",
+			method: "GET",
+			path:   base.Echo.Reverse("problem.getProblems"),
+			req: request.GetProblemsRequest{
+				Search: "",
+				UserID: user.ID, // non-existing user id
+				Limit:  0,
+				Offset: 0,
+				Tried:  true,
+				Passed: true,
+			},
+			reqOptions: []reqOption{
+				applyAdminUser,
+			},
+			statusCode: http.StatusBadRequest,
+			resp:       response.ErrorResp("INVALID_STATUS", nil),
+		},
+		{
+			name:   "WithoutUserId",
+			method: "GET",
+			path:   base.Echo.Reverse("problem.getProblems"),
+			req: request.GetProblemsRequest{
+				Search: "",
+				UserID: 0,
+				Limit:  0,
+				Offset: 0,
+				Tried:  true,
+				Passed: false,
+			},
+			reqOptions: []reqOption{
+				applyAdminUser,
+			},
+			statusCode: http.StatusBadRequest,
+			resp: response.ErrorResp("VALIDATION_ERROR", []interface{}{
+				map[string]interface{}{
+					"field":       "UserID",
+					"reason":      "required_with",
+					"translation": "当选取尝试过题目或选取通过题目不为空时，用户ID为必填字段",
+				},
+			}),
+		},
+	}
+
+	runFailTests(t, failTests, "")
+
+	problem1.Description = ""
+	problem2.Description = ""
+	problem3.Description = ""
+	problem4.Description = ""
+
 	type respData struct {
-		Problems []models.Problem `json:"problems"`
-		Total    int              `json:"total"`
-		Count    int              `json:"count"`
-		Offset   int              `json:"offset"`
-		Prev     *string          `json:"prev"`
-		Next     *string          `json:"next"`
+		Problems []*models.Problem `json:"problems"`
+		Total    int               `json:"total"`
+		Count    int               `json:"count"`
+		Offset   int               `json:"offset"`
+		Prev     *string           `json:"prev"`
+		Next     *string           `json:"next"`
 	}
 
 	successTests := []struct {
@@ -340,14 +418,17 @@ func TestGetProblems(t *testing.T) {
 			name: "All",
 			req: request.GetProblemsRequest{
 				Search: "test_get_problems",
+				UserID: 0,
 				Limit:  0,
 				Offset: 0,
+				Tried:  false,
+				Passed: false,
 			},
 			respData: respData{
-				Problems: []models.Problem{
-					problem1,
-					problem2,
-					problem3,
+				Problems: []*models.Problem{
+					&problem1,
+					&problem2,
+					&problem3,
 				},
 				Total:  3,
 				Count:  3,
@@ -361,15 +442,18 @@ func TestGetProblems(t *testing.T) {
 			name: "AllWithAdminPermission",
 			req: request.GetProblemsRequest{
 				Search: "test_get_problems",
+				UserID: 0,
 				Limit:  0,
 				Offset: 0,
+				Tried:  false,
+				Passed: false,
 			},
 			respData: respData{
-				Problems: []models.Problem{
-					problem1,
-					problem2,
-					problem3,
-					problem4,
+				Problems: []*models.Problem{
+					&problem1,
+					&problem2,
+					&problem3,
+					&problem4,
 				},
 				Total:  4,
 				Count:  4,
@@ -383,11 +467,14 @@ func TestGetProblems(t *testing.T) {
 			name: "NonExist",
 			req: request.GetProblemsRequest{
 				Search: "test_get_problems_non_exist",
+				UserID: 0,
 				Limit:  0,
 				Offset: 0,
+				Tried:  false,
+				Passed: false,
 			},
 			respData: respData{
-				Problems: []models.Problem{},
+				Problems: []*models.Problem{},
 				Total:    0,
 				Count:    0,
 				Offset:   0,
@@ -400,12 +487,15 @@ func TestGetProblems(t *testing.T) {
 			name: "Search",
 			req: request.GetProblemsRequest{
 				Search: "test_get_problems_2",
+				UserID: 0,
 				Limit:  0,
 				Offset: 0,
+				Tried:  false,
+				Passed: false,
 			},
 			respData: respData{
-				Problems: []models.Problem{
-					problem2,
+				Problems: []*models.Problem{
+					&problem2,
 				},
 				Total:  1,
 				Count:  1,
@@ -419,13 +509,16 @@ func TestGetProblems(t *testing.T) {
 			name: "Paginator",
 			req: request.GetProblemsRequest{
 				Search: "test_get_problems",
+				UserID: 0,
 				Limit:  2,
 				Offset: 0,
+				Tried:  false,
+				Passed: false,
 			},
 			respData: respData{
-				Problems: []models.Problem{
-					problem1,
-					problem2,
+				Problems: []*models.Problem{
+					&problem1,
+					&problem2,
 				},
 				Total:  3,
 				Count:  2,
@@ -435,6 +528,51 @@ func TestGetProblems(t *testing.T) {
 					"limit":  "2",
 					"offset": "2",
 				}),
+			},
+			isAdmin: false,
+		},
+		{
+			name: "Passed",
+			req: request.GetProblemsRequest{
+				Search: "test_get_problems",
+				UserID: user.ID,
+				Limit:  0,
+				Offset: 0,
+				Tried:  false,
+				Passed: true,
+			},
+			respData: respData{
+				Problems: []*models.Problem{
+					&problem1,
+					&problem2,
+				},
+				Total:  2,
+				Count:  2,
+				Offset: 0,
+				Prev:   nil,
+				Next:   nil,
+			},
+			isAdmin: false,
+		},
+		{
+			name: "Tried",
+			req: request.GetProblemsRequest{
+				Search: "test_get_problems",
+				UserID: user.ID,
+				Limit:  0,
+				Offset: 0,
+				Tried:  true,
+				Passed: false,
+			},
+			respData: respData{
+				Problems: []*models.Problem{
+					&problem3,
+				},
+				Total:  1,
+				Count:  1,
+				Offset: 0,
+				Prev:   nil,
+				Next:   nil,
 			},
 			isAdmin: false,
 		},
@@ -2084,5 +2222,122 @@ func TestDeleteTestCases(t *testing.T) {
 		var databaseTestCases []models.TestCase
 		assert.NoError(t, base.DB.Find(&databaseTestCases, "problem_id = ?", problem.ID).Error)
 		assert.Equal(t, 0, len(databaseTestCases))
+	})
+}
+
+func TestGetRandomProblem(t *testing.T) {
+	t.Cleanup(database.SetupDatabaseForTest())
+
+	t.Run("Empty", func(t *testing.T) {
+		httpResp := makeResp(makeReq(t, "GET", base.Echo.Reverse("problem.getRandomProblem"),
+			request.GetRandomProblem{}, applyNormalUser))
+		assert.Equal(t, http.StatusNotFound, httpResp.StatusCode)
+		resp := response.Response{}
+		mustJsonDecode(httpResp, &resp)
+		assert.Equal(t, response.ErrorResp("NOT_FOUND", nil), resp)
+	})
+
+	user := createUserForTest(t, "get_random_problem", 0)
+	problems := make(map[uint]*models.Problem)
+	for i := 0; i < 3; i++ {
+		p := createProblemForTest(t, "get_random_problem", 0, nil, user)
+		problems[p.ID] = &p
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		httpResp := makeResp(makeReq(t, "GET", base.Echo.Reverse("problem.getRandomProblem"),
+			request.GetRandomProblem{}, applyNormalUser))
+		assert.Equal(t, http.StatusOK, httpResp.StatusCode)
+		resp := response.GetRandomProblemResponse{}
+		mustJsonDecode(httpResp, &resp)
+		assert.Equal(t, response.GetRandomProblemResponse{
+			Message: "SUCCESS",
+			Error:   nil,
+			Data: struct {
+				*resource.Problem `json:"problem"`
+			}{
+				resource.GetProblem(problems[resp.Data.ID]),
+			},
+		}, resp)
+	})
+}
+
+func TestGetUserProblemInfo(t *testing.T) {
+	t.Parallel()
+
+	user := createUserForTest(t, "get_user_problem_info", 1)
+	otherUser := createUserForTest(t, "get_user_problem_info", 2)
+	problem1 := createProblemForTest(t, "get_user_problem_info", 1, nil, user)
+	problem2 := createProblemForTest(t, "get_user_problem_info", 2, nil, user)
+	problem3 := createProblemForTest(t, "get_user_problem_info", 3, nil, user)
+
+	submissionPassed1 := createSubmissionForTest(t, "get_user_problem_info_1_passed", 1, &problem1, &user, nil, 0)
+	submissionPassed2 := createSubmissionForTest(t, "get_user_problem_info_1_passed", 2, &problem1, &otherUser, nil, 0)
+	submissionPassed3 := createSubmissionForTest(t, "get_user_problem_info_2_passed", 3, &problem2, &user, nil, 0)
+	submissionPassed4 := createSubmissionForTest(t, "get_user_problem_info_2_passed", 4, &problem2, &user, nil, 0)
+	submissionPassed1.Status = "ACCEPTED"
+	submissionPassed2.Status = "ACCEPTED"
+	submissionPassed3.Status = "ACCEPTED"
+	submissionPassed4.Status = "ACCEPTED"
+	assert.NoError(t, base.DB.Save(&submissionPassed1).Error)
+	assert.NoError(t, base.DB.Save(&submissionPassed2).Error)
+	assert.NoError(t, base.DB.Save(&submissionPassed3).Error)
+	assert.NoError(t, base.DB.Save(&submissionPassed4).Error)
+
+	submissionFailed1 := createSubmissionForTest(t, "get_user_problem_info_1_failed", 1, &problem1, &otherUser, nil, 0)
+	submissionFailed2 := createSubmissionForTest(t, "get_user_problem_info_2_failed", 2, &problem2, &user, nil, 0)
+	submissionFailed3 := createSubmissionForTest(t, "get_user_problem_info_3_failed", 3, &problem3, &user, nil, 0)
+	submissionFailed4 := createSubmissionForTest(t, "get_user_problem_info_3_failed", 4, &problem3, &user, nil, 0)
+	submissionFailed1.Status = "WRONG_ANSWER"
+	submissionFailed2.Status = "TIME_LIMIT_EXCEEDED"
+	submissionFailed3.Status = "RUNTIME_ERROR"
+	submissionFailed4.Status = "PENDING"
+	assert.NoError(t, base.DB.Save(&submissionFailed1).Error)
+	assert.NoError(t, base.DB.Save(&submissionFailed2).Error)
+	assert.NoError(t, base.DB.Save(&submissionFailed3).Error)
+	assert.NoError(t, base.DB.Save(&submissionFailed4).Error)
+
+	t.Run("Success", func(t *testing.T) {
+		t.Parallel()
+		httpResp := makeResp(makeReq(t, "GET", base.Echo.Reverse("problem.getUserProblemInfo", user.ID),
+			request.GetUserProblemInfo{}, applyNormalUser))
+		assert.Equal(t, http.StatusOK, httpResp.StatusCode)
+		resp := response.GetUserProblemInfoResponse{}
+		mustJsonDecode(httpResp, &resp)
+		assert.Equal(t, response.GetUserProblemInfoResponse{
+			Message: "SUCCESS",
+			Error:   nil,
+			Data: struct {
+				TriedCount  int `json:"tried_count"`
+				PassedCount int `json:"passed_count"`
+				Rank        int `json:"rank"`
+			}{
+				TriedCount:  1,
+				PassedCount: 2,
+				Rank:        0,
+			},
+		}, resp)
+	})
+
+	t.Run("NonExistingUser", func(t *testing.T) {
+		t.Parallel()
+		httpResp := makeResp(makeReq(t, "GET", base.Echo.Reverse("problem.getUserProblemInfo", -1),
+			request.GetUserProblemInfo{}, applyNormalUser))
+		assert.Equal(t, http.StatusOK, httpResp.StatusCode)
+		resp := response.GetUserProblemInfoResponse{}
+		mustJsonDecode(httpResp, &resp)
+		assert.Equal(t, response.GetUserProblemInfoResponse{
+			Message: "SUCCESS",
+			Error:   nil,
+			Data: struct {
+				TriedCount  int `json:"tried_count"`
+				PassedCount int `json:"passed_count"`
+				Rank        int `json:"rank"`
+			}{
+				TriedCount:  0,
+				PassedCount: 0,
+				Rank:        0,
+			},
+		}, resp)
 	})
 }

@@ -1,9 +1,9 @@
 package middleware_test
 
 import (
+	"github.com/EduOJ/backend/app/middleware"
+	"github.com/EduOJ/backend/app/response"
 	"github.com/labstack/echo/v4"
-	"github.com/leoleoasd/EduOJBackend/app/middleware"
-	"github.com/leoleoasd/EduOJBackend/app/response"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"

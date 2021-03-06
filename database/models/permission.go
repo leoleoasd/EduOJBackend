@@ -2,7 +2,7 @@ package models
 
 import (
 	"encoding/json"
-	"github.com/leoleoasd/EduOJBackend/base"
+	"github.com/EduOJ/backend/base"
 )
 
 type HasRole interface {

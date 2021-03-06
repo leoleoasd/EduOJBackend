@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/database/models"
 	"time"
 )
 
@@ -20,6 +20,7 @@ type Submission struct {
 	Status string `json:"status"`
 
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (s *Submission) convert(submission *models.Submission) {
@@ -34,6 +35,7 @@ func (s *Submission) convert(submission *models.Submission) {
 	s.Score = submission.Score
 	s.Status = submission.Status
 	s.CreatedAt = submission.CreatedAt
+	s.UpdatedAt = submission.UpdatedAt
 }
 
 func GetSubmission(submission *models.Submission) *Submission {
@@ -69,6 +71,7 @@ type SubmissionDetail struct {
 	Runs []Run `json:"runs"`
 
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (s *SubmissionDetail) convert(submission *models.Submission) {
@@ -86,6 +89,7 @@ func (s *SubmissionDetail) convert(submission *models.Submission) {
 	s.Status = submission.Status
 	s.Runs = GetRunSlice(submission.Runs)
 	s.CreatedAt = submission.CreatedAt
+	s.UpdatedAt = submission.UpdatedAt
 }
 
 func GetSubmissionDetail(submission *models.Submission) *SubmissionDetail {
@@ -119,6 +123,7 @@ type Run struct {
 	TimeUsed   uint   `json:"time_used"`   // ms
 
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (r *Run) convert(run *models.Run) {
@@ -135,6 +140,7 @@ func (r *Run) convert(run *models.Run) {
 	r.MemoryUsed = run.MemoryUsed
 	r.TimeUsed = run.TimeUsed
 	r.CreatedAt = run.CreatedAt
+	r.UpdatedAt = run.UpdatedAt
 }
 
 func GetRun(run *models.Run) *Run {

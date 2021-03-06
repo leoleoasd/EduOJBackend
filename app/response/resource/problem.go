@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/database/models"
 )
 
 type TestCaseForAdmin struct {
@@ -124,10 +124,10 @@ func GetProblemForAdmin(problem *models.Problem) *ProblemForAdmin {
 	return &p
 }
 
-func GetProblemForAdminSlice(problems []models.Problem) (profiles []ProblemForAdmin) {
+func GetProblemForAdminSlice(problems []*models.Problem) (profiles []ProblemForAdmin) {
 	profiles = make([]ProblemForAdmin, len(problems))
 	for i, problem := range problems {
-		profiles[i].convert(&problem)
+		profiles[i].convert(problem)
 	}
 	return
 }
@@ -138,10 +138,10 @@ func GetProblem(problem *models.Problem) *Problem {
 	return &p
 }
 
-func GetProblemSlice(problems []models.Problem) (profiles []Problem) {
+func GetProblemSlice(problems []*models.Problem) (profiles []Problem) {
 	profiles = make([]Problem, len(problems))
 	for i, problem := range problems {
-		profiles[i].convert(&problem)
+		profiles[i].convert(problem)
 	}
 	return
 }

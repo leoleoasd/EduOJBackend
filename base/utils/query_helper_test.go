@@ -2,8 +2,8 @@ package utils
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"net/url"

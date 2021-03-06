@@ -2,8 +2,8 @@ package resource_test
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"testing"
@@ -143,7 +143,7 @@ func TestGetProblemSliceAndGetProblemForAdminSlice(t *testing.T) {
 	problem1 := createProblemForTest("get_problem_slice", 1, 1)
 	problem2 := createProblemForTest("get_problem_slice", 2, 2)
 	t.Run("testGetProblemSlice", func(t *testing.T) {
-		actualProblemSlice := resource.GetProblemSlice([]models.Problem{problem1, problem2})
+		actualProblemSlice := resource.GetProblemSlice([]*models.Problem{&problem1, &problem2})
 		expectedProblemSlice := []resource.Problem{
 			{
 				ID:                 1,
@@ -189,7 +189,7 @@ func TestGetProblemSliceAndGetProblemForAdminSlice(t *testing.T) {
 		assert.Equal(t, expectedProblemSlice, actualProblemSlice)
 	})
 	t.Run("testGetProblemForAdminSlice", func(t *testing.T) {
-		actualProblemSlice := resource.GetProblemForAdminSlice([]models.Problem{problem1, problem2})
+		actualProblemSlice := resource.GetProblemForAdminSlice([]*models.Problem{&problem1, &problem2})
 		expectedProblemSlice := []resource.ProblemForAdmin{
 			{
 				ID:                 1,

@@ -2,12 +2,12 @@ package controller_test
 
 import (
 	"fmt"
-	"github.com/leoleoasd/EduOJBackend/app/request"
-	"github.com/leoleoasd/EduOJBackend/app/response"
-	"github.com/leoleoasd/EduOJBackend/app/response/resource"
-	"github.com/leoleoasd/EduOJBackend/base"
-	"github.com/leoleoasd/EduOJBackend/base/utils"
-	"github.com/leoleoasd/EduOJBackend/database/models"
+	"github.com/EduOJ/backend/app/request"
+	"github.com/EduOJ/backend/app/response"
+	"github.com/EduOJ/backend/app/response/resource"
+	"github.com/EduOJ/backend/base"
+	"github.com/EduOJ/backend/base/utils"
+	"github.com/EduOJ/backend/database/models"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"net/http"
@@ -22,7 +22,7 @@ func checkInviteCode(t *testing.T, code string) {
 	assert.Equal(t, int64(1), count)
 }
 
-func createClassForTest(t *testing.T, name string, id int, managers, students []models.User) models.Class {
+func createClassForTest(t *testing.T, name string, id int, managers, students []*models.User) models.Class {
 	inviteCode := utils.GenerateInviteCode()
 	class := models.Class{
 		Name:        fmt.Sprintf("test_%s_%d_name", name, id),
@@ -109,10 +109,10 @@ func TestCreateClass(t *testing.T) {
 		CourseName:  "test_create_class_1_course_name",
 		Description: "test_create_class_1_description",
 		InviteCode:  databaseClass.InviteCode,
-		Managers: []models.User{
-			databaseUser,
+		Managers: []*models.User{
+			&databaseUser,
 		},
-		Students:  []models.User{},
+		Students:  []*models.User{},
 		CreatedAt: databaseClass.CreatedAt,
 		UpdatedAt: databaseClass.UpdatedAt,
 		DeletedAt: gorm.DeletedAt{},
@@ -186,7 +186,7 @@ func TestGetClass(t *testing.T) {
 		t.Parallel()
 
 		user := createUserForTest(t, "test_get_class_student", 0)
-		class := createClassForTest(t, "test_get_class_student", 0, nil, []models.User{user})
+		class := createClassForTest(t, "test_get_class_student", 0, nil, []*models.User{&user})
 		httpResp := makeResp(makeReq(t, "GET", base.Echo.Reverse("class.getClass", class.ID), request.GetClassRequest{}, applyUser(user)))
 		assert.Equal(t, http.StatusOK, httpResp.StatusCode)
 		resp := response.GetClassResponse{}
@@ -213,27 +213,33 @@ func TestGetClassesIManageAndTake(t *testing.T) {
 		createUserForTest(t, "test_get_classes_i_manage_or_take", 3),
 	}
 
-	class1 := createClassForTest(t, "test_get_classes_i_manage_or_take", 1, []models.User{
-		users[1],
-	}, []models.User{
-		users[2],
-		users[3],
+	class1 := createClassForTest(t, "test_get_classes_i_manage_or_take", 1, []*models.User{
+		&users[1],
+	}, []*models.User{
+		&users[2],
+		&users[3],
 	})
-	class2 := createClassForTest(t, "test_get_classes_i_manage_or_take", 2, []models.User{
-		users[3],
-	}, []models.User{
-		users[2],
-		users[3],
+	class2 := createClassForTest(t, "test_get_classes_i_manage_or_take", 2, []*models.User{
+		&users[3],
+	}, []*models.User{
+		&users[2],
+		&users[3],
 	})
-	class3 := createClassForTest(t, "test_get_classes_i_manage_or_take", 3, []models.User{
-		users[1],
-		users[3],
-	}, []models.User{})
-	_ = createClassForTest(t, "test_get_classes_i_manage_or_take", 4, []models.User{}, []models.User{})
+	class3 := createClassForTest(t, "test_get_classes_i_manage_or_take", 3, []*models.User{
+		&users[1],
+		&users[3],
+	}, []*models.User{})
+	createClassForTest(t, "test_get_classes_i_manage_or_take", 4, []*models.User{}, []*models.User{})
 
 	for i := range users {
 		assert.NoError(t, base.DB.First(&users[i], users[i].ID).Error)
 	}
+
+	createProblemSetForTest(t, "test_get_classes_i_manage_or_take_1", 1, &class1, nil)
+	createProblemSetForTest(t, "test_get_classes_i_manage_or_take_1", 2, &class1, nil)
+	createProblemSetForTest(t, "test_get_classes_i_manage_or_take_2", 1, &class2, nil)
+	createProblemSetForTest(t, "test_get_classes_i_manage_or_take_2", 2, &class2, nil)
+	createProblemSetForTest(t, "test_get_classes_i_manage_or_take_3", 1, &class3, nil)
 
 	class1.Students = nil
 	class1.Managers = nil
@@ -272,6 +278,9 @@ func TestGetClassesIManageAndTake(t *testing.T) {
 		for i, classes := range manageClasses {
 			i := i
 			classes := classes
+			for i := range classes {
+				classes[i].ProblemSets = []*models.ProblemSet{}
+			}
 			t.Run(fmt.Sprintf("User%d", i), func(t *testing.T) {
 				t.Parallel()
 
@@ -406,8 +415,8 @@ func TestUpdateClass(t *testing.T) {
 			CourseName:  "test_update_class_00_course_name",
 			Description: "test_update_class_00_description",
 			InviteCode:  databaseClass.InviteCode,
-			Managers:    []models.User{},
-			Students:    []models.User{},
+			Managers:    []*models.User{},
+			Students:    []*models.User{},
 			CreatedAt:   databaseClass.CreatedAt,
 			UpdatedAt:   databaseClass.UpdatedAt,
 			DeletedAt:   gorm.DeletedAt{},
@@ -479,8 +488,8 @@ func TestRefreshInviteCode(t *testing.T) {
 			CourseName:  "test_refresh_invite_code_0_course_name",
 			Description: "test_refresh_invite_code_0_description",
 			InviteCode:  databaseClass.InviteCode,
-			Managers:    []models.User{},
-			Students:    []models.User{},
+			Managers:    []*models.User{},
+			Students:    []*models.User{},
 			CreatedAt:   databaseClass.CreatedAt,
 			UpdatedAt:   databaseClass.UpdatedAt,
 			DeletedAt:   gorm.DeletedAt{},
@@ -600,9 +609,9 @@ func TestAddAndDeleteStudents(t *testing.T) {
 	t.Run("AddStudentSuccess", func(t *testing.T) {
 		t.Parallel()
 
-		class := createClassForTest(t, "add_students_success", 0, nil, []models.User{
-			user1,
-			user2,
+		class := createClassForTest(t, "add_students_success", 0, nil, []*models.User{
+			&user1,
+			&user2,
 		})
 		user := createUserForTest(t, "add_students_success", 0)
 		user.GrantRole("class_creator", class)
@@ -624,12 +633,12 @@ func TestAddAndDeleteStudents(t *testing.T) {
 			CourseName:  "test_add_students_success_0_course_name",
 			Description: "test_add_students_success_0_description",
 			InviteCode:  databaseClass.InviteCode,
-			Managers:    []models.User{},
-			Students: []models.User{
-				user1,
-				user2,
-				user3,
-				user4,
+			Managers:    []*models.User{},
+			Students: []*models.User{
+				&user1,
+				&user2,
+				&user3,
+				&user4,
 			},
 			CreatedAt: databaseClass.CreatedAt,
 			UpdatedAt: databaseClass.UpdatedAt,
@@ -651,10 +660,10 @@ func TestAddAndDeleteStudents(t *testing.T) {
 	t.Run("DeleteStudentSuccess", func(t *testing.T) {
 		t.Parallel()
 
-		class := createClassForTest(t, "delete_students_success", 0, nil, []models.User{
-			user1,
-			user2,
-			user3,
+		class := createClassForTest(t, "delete_students_success", 0, nil, []*models.User{
+			&user1,
+			&user2,
+			&user3,
 		})
 		user := createUserForTest(t, "delete_students_success", 0)
 		user.GrantRole("class_creator", class)
@@ -676,9 +685,9 @@ func TestAddAndDeleteStudents(t *testing.T) {
 			CourseName:  "test_delete_students_success_0_course_name",
 			Description: "test_delete_students_success_0_description",
 			InviteCode:  databaseClass.InviteCode,
-			Managers:    []models.User{},
-			Students: []models.User{
-				user1,
+			Managers:    []*models.User{},
+			Students: []*models.User{
+				&user1,
 			},
 			CreatedAt: databaseClass.CreatedAt,
 			UpdatedAt: databaseClass.UpdatedAt,
@@ -702,14 +711,13 @@ func TestAddAndDeleteStudents(t *testing.T) {
 func TestJoinClass(t *testing.T) {
 	t.Parallel()
 	user := createUserForTest(t, "test_join_class_already_in_class", 0)
-	class1 := createClassForTest(t, "test_join_class_wrong_invite_code", 1, nil, nil)
-	class2 := createClassForTest(t, "test_join_class_already_in_class", 2, nil, []models.User{user})
+	class := createClassForTest(t, "test_join_class_already_in_class", 0, nil, []*models.User{&user})
 	failTests := []failTest{
 		{
 			// testJoinClassWithoutParams
 			name:       "WithoutParams",
 			method:     "POST",
-			path:       base.Echo.Reverse("class.joinClass", -1),
+			path:       base.Echo.Reverse("class.joinClass"),
 			req:        request.JoinClassRequest{},
 			reqOptions: []reqOption{applyAdminUser},
 			statusCode: http.StatusBadRequest,
@@ -722,36 +730,24 @@ func TestJoinClass(t *testing.T) {
 			}),
 		},
 		{
-			// testJoinClassNonExist
-			name:   "NonExist",
-			method: "POST",
-			path:   base.Echo.Reverse("class.joinClass", -1),
-			req: request.JoinClassRequest{
-				InviteCode: utils.GenerateInviteCode(),
-			},
-			reqOptions: []reqOption{applyAdminUser},
-			statusCode: http.StatusNotFound,
-			resp:       response.ErrorResp("NOT_FOUND", nil),
-		},
-		{
 			// testJoinClassWrongInviteCode
-			name:   "WrongInviteCode",
+			name:   "NotFound",
 			method: "POST",
-			path:   base.Echo.Reverse("class.joinClass", class1.ID),
+			path:   base.Echo.Reverse("class.joinClass"),
 			req: request.JoinClassRequest{
 				InviteCode: utils.GenerateInviteCode(),
 			},
 			reqOptions: []reqOption{applyNormalUser},
-			statusCode: http.StatusForbidden,
-			resp:       response.ErrorResp("WRONG_INVITE_CODE", nil),
+			statusCode: http.StatusNotFound,
+			resp:       response.ErrorResp("NOT_FOUND", nil),
 		},
 		{
 			// testJoinClassAlreadyInClass
 			name:   "AlreadyInClass",
 			method: "POST",
-			path:   base.Echo.Reverse("class.joinClass", class2.ID),
+			path:   base.Echo.Reverse("class.joinClass"),
 			req: request.JoinClassRequest{
-				InviteCode: class2.InviteCode,
+				InviteCode: class.InviteCode,
 			},
 			reqOptions: []reqOption{applyUser(user)},
 			statusCode: http.StatusBadRequest,
@@ -768,7 +764,7 @@ func TestJoinClass(t *testing.T) {
 		user := createUserForTest(t, "join_class", 0)
 		user.GrantRole("class_creator", class)
 
-		httpResp := makeResp(makeReq(t, "POST", base.Echo.Reverse("class.joinClass", class.ID), request.JoinClassRequest{
+		httpResp := makeResp(makeReq(t, "POST", base.Echo.Reverse("class.joinClass"), request.JoinClassRequest{
 			InviteCode: class.InviteCode,
 		}, applyUser(user)))
 		assert.Equal(t, http.StatusOK, httpResp.StatusCode)
@@ -785,9 +781,9 @@ func TestJoinClass(t *testing.T) {
 			CourseName:  "test_join_class_0_course_name",
 			Description: "test_join_class_0_description",
 			InviteCode:  databaseClass.InviteCode,
-			Managers:    []models.User{},
-			Students: []models.User{
-				user,
+			Managers:    []*models.User{},
+			Students: []*models.User{
+				&user,
 			},
 			CreatedAt: databaseClass.CreatedAt,
 			UpdatedAt: databaseClass.UpdatedAt,
@@ -831,8 +827,9 @@ func TestDeleteClass(t *testing.T) {
 		t.Parallel()
 
 		user := createUserForTest(t, "delete_class", 0)
-		class := createClassForTest(t, "delete_class", 0, []models.User{user}, []models.User{user})
+		class := createClassForTest(t, "delete_class", 0, []*models.User{&user}, []*models.User{&user})
 		user.GrantRole("class_creator", class)
+		createProblemSetForTest(t, "delete_class", 0, &class, nil)
 
 		httpResp := makeResp(makeReq(t, "DELETE", base.Echo.Reverse("class.deleteClass", class.ID),
 			request.DeleteClassRequest{}, applyUser(user)))
@@ -846,5 +843,7 @@ func TestDeleteClass(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, databaseUser.ClassesTaking)
 		assert.Empty(t, databaseUser.ClassesManaging)
+		err = base.DB.First(&models.ProblemSet{}, "class_id = ?", class.ID).Error
+		assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 	})
 }
