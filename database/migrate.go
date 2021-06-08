@@ -1173,6 +1173,21 @@ func GetMigration() *gormigrate.Gormigrate {
 				return tx.Migrator().DropColumn(&Grade{}, "ClassID")
 			},
 		},
+		{
+			ID: "remove_delete_at_field_in_grades",
+			Migrate: func(tx *gorm.DB) error {
+				type Grade struct {
+					ID uint `gorm:"primaryKey" json:"id"`
+				}
+				return tx.Migrator().DropColumn(&Grade{}, "deleted_at")
+			},
+			Rollback: func(tx *gorm.DB) error {
+				type Grade struct {
+					DeletedAt gorm.DeletedAt `json:"deleted_at"`
+				}
+				return tx.AutoMigrate(&Grade{})
+			},
+		},
 	})
 }
 

@@ -37,11 +37,17 @@ type DeleteProblemsFromSetRequest struct {
 type DeleteProblemSetRequest struct {
 }
 
-type GetProblemSetProblem struct {
+type GetProblemSetProblemRequest struct {
 }
 
-type GetProblemSetProblemInputFile struct {
+type GetProblemSetProblemInputFileRequest struct {
 }
 
-type GetProblemSetProblemOutputFile struct {
+type GetProblemSetProblemOutputFileRequest struct {
+}
+
+type GetGradesRequest struct {
+}
+
+type RefreshGradesRequest struct {
 }

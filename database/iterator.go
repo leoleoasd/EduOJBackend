@@ -9,16 +9,16 @@ const IteratorLimit = 1000
 
 type Iterator struct {
 	query  *gorm.DB
-	branch interface{}
+	bunch  interface{}
 	count  int
 	offset int
 	limit  int
 	index  int
 }
 
-func NewIterator(query *gorm.DB, branch interface{}, limit ...int) (it *Iterator, err error) {
+func NewIterator(query *gorm.DB, bunch interface{}, limit ...int) (it *Iterator, err error) {
 	it = &Iterator{
-		branch: branch,
+		bunch:  bunch,
 		query:  query,
 		limit:  IteratorLimit,
 		offset: 0,
@@ -27,17 +27,17 @@ func NewIterator(query *gorm.DB, branch interface{}, limit ...int) (it *Iterator
 	if len(limit) > 0 {
 		it.limit = limit[0]
 	}
-	err = it.nextBranch()
+	err = it.nextBunch()
 	return
 }
 
-func (it *Iterator) nextBranch() error {
+func (it *Iterator) nextBunch() error {
 
-	if err := it.query.WithContext(context.Background()).Limit(it.limit).Offset(it.offset).Find(it.branch).Error; err != nil {
+	if err := it.query.WithContext(context.Background()).Limit(it.limit).Offset(it.offset).Find(it.bunch).Error; err != nil {
 		return err
 	}
 	var count int64
-	if err := it.query.WithContext(context.Background()).Model(it.branch).Count(&count).Error; err != nil {
+	if err := it.query.WithContext(context.Background()).Model(it.bunch).Count(&count).Error; err != nil {
 		return err
 	}
 	if c := int(count) - it.offset; c < it.limit {
@@ -55,7 +55,7 @@ func (it *Iterator) Next() (ok bool, err error) {
 		if err = it.saveBranch(); err != nil {
 			return
 		}
-		if err = it.nextBranch(); err != nil {
+		if err = it.nextBunch(); err != nil {
 			return
 		}
 	}
@@ -71,10 +71,10 @@ func (it *Iterator) Next() (ok bool, err error) {
 	return true, nil
 }
 
-func (it *Iterator) Index() interface{} {
+func (it *Iterator) Index() int {
 	return it.index
 }
 
 func (it *Iterator) saveBranch() error {
-	return it.query.Save(it.branch).Error
+	return it.query.Save(it.bunch).Error
 }
