@@ -5,36 +5,24 @@ import (
 	"time"
 )
 
-type Comment struct{
-
-	ID       uint `gorm:"primaryKey"`
+type Comment struct {
+	ID uint `gorm:"primaryKey"`
 
 	UserID uint
-	Writer User `gorm:"foreignKey:UserID"`
+	User   User `gorm:"foreignKey:UserID"`
+
+	ReactionID uint
+	Reaction   Reaction `gorm:"foreignKey:ReactionID" gorm:"polymorphic:Target"`
 
 	Content string
 
+	TargetID   uint
+	TargetType string
 
-	IfDeleted bool
-
-	FirstID uint
-	FirstType string
-
-	FatherID uint
-	FatherType string
-
-
-	Detail string
-
+	FatherID          uint
+	RecursiveFatherId uint
 
 	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `gorm:"index"`
 	DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
-
 }
-
-
-
-
-
-

@@ -1174,22 +1174,40 @@ func GetMigration() *gormigrate.Gormigrate {
 			},
 		},
 		{
-			ID: "create_comments_table",
+			ID: "create_reactions_table",
 			Migrate: func(tx *gorm.DB) error {
 				type Reaction struct {
-					ID uint `gorm:"primaryKey"`
-					BelongType string
-					BelongID uint
+					ID         uint `gorm:"primaryKey"`
+					TargetType string
+					TargetID   uint
 
 					Details string
 
-					LastDealType string
-
-					CreatedAt time.Time      `json:"created_at"`
-					UpdatedAt time.Time      `json:"-"`
+					CreatedAt time.Time `json:"created_at"`
+					UpdatedAt time.Time `json:"-"`
 
 					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
+				}
+				return tx.AutoMigrate(&Reaction{})
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Migrator().DropTable("reactions")
+			},
+		},
+		{
+			ID: "create_comments_table",
+			Migrate: func(tx *gorm.DB) error {
+				type Reaction struct {
+					ID         uint `gorm:"primaryKey"`
+					TargetType string
+					TargetID   uint
 
+					Details string
+
+					CreatedAt time.Time `json:"created_at"`
+					UpdatedAt time.Time `json:"-"`
+
+					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
 				}
 
 				type User struct {
@@ -1199,49 +1217,38 @@ func GetMigration() *gormigrate.Gormigrate {
 					Email    string `gorm:"unique_index" json:"email"`
 					Password string `json:"-"`
 
-					RoleLoaded bool          `gorm:"-" json:"-"`
-
+					RoleLoaded bool `gorm:"-" json:"-"`
 
 					CreatedAt time.Time      `json:"created_at"`
 					UpdatedAt time.Time      `json:"-"`
 					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
-
 				}
 
-				type Comment struct{
-
-					ID       uint `gorm:"primaryKey"`
+				type Comment struct {
+					ID uint `gorm:"primaryKey"`
 
 					UserID uint
-					Writer User `gorm:"foreignKey:UserID"`
+					User   User `gorm:"foreignKey:UserID"`
+
+					ReactionID uint
+					Reaction   Reaction `gorm:"foreignKey:ReactionID" gorm:"polymorphic:Target"`
 
 					Content string
 
+					TargetID   uint
+					TargetType string
 
-					IfDeleted bool
-
-					FirstID uint
-					FirstType string
-
-					FatherID uint
-					FatherType string
-
-					Detail string
-
+					FatherID          uint
+					RecursiveFatherId uint
 
 					CreatedAt time.Time      `json:"created_at"`
-					UpdatedAt time.Time      `json:"-"`
+					UpdatedAt time.Time      `gorm:"index"`
 					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
-
 				}
 
 				return tx.AutoMigrate(&Comment{})
 			},
 			Rollback: func(tx *gorm.DB) (err error) {
-				err =  tx.Migrator().DropTable("ancestors_in_comments")
-				if err != nil {
-					return
-				}
 				return tx.Migrator().DropTable("comments")
 			},
 		},
