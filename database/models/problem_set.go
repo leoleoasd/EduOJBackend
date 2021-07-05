@@ -40,9 +40,8 @@ type Grade struct {
 	Detail datatypes.JSON `json:"detail"`
 	Total  uint           `json:"total"`
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"-"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 func (p *ProblemSet) AddProblems(ids []uint) error {
