@@ -11,8 +11,8 @@ type CreateCommentRequest struct {
 type GetCommentRequest struct {
 	TargetType string `json:"target_type" form:"target_type" query:"target_type"`
 	TargetID   uint   `json:"target_id" form:"target_id" query:"target_id"`
-	begin      uint   `json:"begin" form:"begin" query:"begin"` //param for paginator
-	end        uint   `json:"end" form:"end" query:"end "`
+	Limit      int   `json:"limit" form:"limit" query:"limit"` //param for paginator
+	Offset        int   `json:"offset" form:"offset" query:"offset"`
 }
 
 

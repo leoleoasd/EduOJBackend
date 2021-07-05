@@ -9,6 +9,7 @@ import (
 	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 )
 
 // CreateComment creates a comment by father_id(0 for root node), target_id,target_type
@@ -35,6 +36,8 @@ func CreateComment(c echo.Context) error {
 	}
 	utils.PanicIfDBError(base.DB.Save(&newReaction), "could not save reaction")
 
+	var newComment models.Comment
+
 	if fatherID != 0 {
 		//father is comment
 		var father models.Comment
@@ -49,10 +52,10 @@ func CreateComment(c echo.Context) error {
 		}
 		if father.FatherID != 0 {
 			// father is comment node
-			newComment.RecursiveFatherId = father.RecursiveFatherId
+			newComment.RootCommentID = father.RootCommentID
 		} else {
 			// father is root node
-			newComment.RecursiveFatherId = father.ID
+			newComment.RootCommentID = father.ID
 		}
 		utils.PanicIfDBError(base.DB.Save(&newComment), "could not save comment")
 
@@ -72,9 +75,9 @@ func CreateComment(c echo.Context) error {
 		Message: "SUCCESS",
 		Error:   nil,
 		Data: struct {
-			Id uint
+			Comment models.Comment
 		}{
-			uint(1),
+			newComment,
 		},
 	})
 
@@ -90,8 +93,23 @@ func GetComment(c echo.Context) error {
 		ids := req.TargetID
 		var commentsNoneRoot []models.Comment
 		var commentsRoot []models.Comment
-		query := base.DB.Model(&models.Comment{}).Preload("User").Preload("Reaction")
-		query.Order("ID").Find(&commentsRoot, " target_type = ? AND target_id = ? AND father_id = ?", "problem", uint(ids), 0)
+		query := base.DB.Model(&models.Comment{}).
+			Preload("User").
+			Preload("Reaction").
+			Order("ID").
+			Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", "problem", uint(ids), 0)
+
+		//paginator
+		total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &commentsRoot)
+		if err != nil {
+			if herr, ok := err.(utils.HttpError); ok {
+				return herr.Response(c)
+			}
+			panic(err)
+		}
+
+
+		//query roots' children, already been paginated
 		var RecursiveFatherIds []uint
 		for _, v := range commentsRoot {
 			RecursiveFatherIds = append(RecursiveFatherIds, v.ID)
@@ -101,7 +119,7 @@ func GetComment(c echo.Context) error {
 			Preload("User").
 			Preload("Reaction").
 			Order("updated_at desc").
-			Find(&commentsNoneRoot, "recursive_father_id in ?", RecursiveFatherIds)
+			Find(&commentsNoneRoot, "root_comment_id in ?", RecursiveFatherIds)
 
 		return c.JSON(http.StatusCreated, response.GetCommentResponse{
 			Message: "SUCCESS",
@@ -109,9 +127,19 @@ func GetComment(c echo.Context) error {
 			Data: struct {
 				ComsRoot     []models.Comment
 				ComsNoneRoot []models.Comment
+				Total    int                        `json:"total"`
+				Count    int                        `json:"count"`
+				Offset   int                        `json:"offset"`
+				Prev     *string                    `json:"prev"`
+				Next     *string                    `json:"next"`
 			}{
 				commentsRoot,
 				commentsNoneRoot,
+				total,
+				len(commentsRoot),
+				req.Offset,
+				prevUrl,
+				nextUrl,
 			},
 		})
 	} else {
@@ -128,24 +156,24 @@ func AddReaction(c echo.Context) error {
 		return err
 	}
 	user, ok := c.Get("user").(models.User)
+	targetID,_ := strconv.Atoi(c.Param("id"))
 	if !ok {
 		panic("could not convert my user into type models.User")
 	}
 
-	reactionId := req.ReactionID
 	compType := req.IFAddAction
 	typeId := req.EmojiType
-	query := base.DB.Model(&models.Reaction{})
-	var reaction models.Reaction
-	query = query.First(&reaction, uint(reactionId))
+	query := base.DB.Model(&models.Comment{}).Preload("Reaction")
+	var comment models.Comment
+	query = query.First(&comment, uint(targetID))
 	maps := make(map[string][]uint)
 	if compType {
-		if reaction.Details == "" {
+		if comment.Reaction.Details == "" {
 			maps[typeId] = make([]uint, 2)
 			maps[typeId][0] = 1
 			maps[typeId][1] = uint(user.ID)
 		} else {
-			err := json.Unmarshal([]byte(reaction.Details), &maps)
+			err := json.Unmarshal([]byte(comment.Reaction.Details), &maps)
 			if err != nil {
 				panic(err)
 			}
@@ -170,14 +198,14 @@ func AddReaction(c echo.Context) error {
 			panic("parse error")
 			panic(err)
 		}
-		reaction.Details = string(jsonStr)
-		base.DB.Save(&reaction)
+		comment.Reaction.Details = string(jsonStr)
+		base.DB.Save(&(comment.Reaction))
 	} else {
 		//delete action
-		if reaction.Details == "" {
+		if comment.Reaction.Details == "" {
 			panic("this should not happen, logic in error!")
 		} else {
-			json.Unmarshal([]byte(reaction.Details), &maps)
+			json.Unmarshal([]byte(comment.Reaction.Details), &maps)
 			_, key := maps[typeId]
 			if key {
 				pos := -1
@@ -199,8 +227,8 @@ func AddReaction(c echo.Context) error {
 					panic("parse error")
 					panic(err)
 				}
-				reaction.Details = string(jsonStr)
-				base.DB.Save(&reaction)
+				comment.Reaction.Details = string(jsonStr)
+				base.DB.Save(&comment.Reaction)
 			} else {
 				return c.JSON(http.StatusBadRequest, response.ErrorResp("you have not actived!", nil))
 			}

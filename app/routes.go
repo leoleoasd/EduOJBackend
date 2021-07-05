@@ -137,9 +137,9 @@ func Register(e *echo.Echo) {
 
 	// comment APIs
 	comment := api.Group("", middleware.Logged)
-	comment.POST("/comments", controller.CreateComment).Name = "comment.createComment"
+	comment.POST("/comment", controller.CreateComment).Name = "comment.createComment"
 	comment.GET("/comments", controller.GetComment).Name = "comment.getComment"
-	comment.PUT("/comments", controller.AddReaction).Name = "comment.addReaction"
+	comment.POST("/comment/:id/reaction", controller.AddReaction).Name = "comment.addReaction"
 
 	// submission APIs
 	submission := api.Group("",
