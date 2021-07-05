@@ -239,7 +239,7 @@ func AddReaction(c echo.Context) error {
 		Message: "SUCCESS",
 		Error:   nil,
 		Data: struct {
-			Cont string
+			Content string
 		}{
 			"you have successfully "+ req.EmojiType + "ed the comment",
 		},

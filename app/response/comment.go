@@ -30,6 +30,6 @@ type AddReactionResponse struct {
 	Message string      `json:"message"`
 	Error   interface{} `json:"error"`
 	Data    struct {
-		Cont string
+		Content string
 	} `json:"data"`
 }
