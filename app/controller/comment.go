@@ -9,7 +9,6 @@ import (
 	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"strconv"
 )
 
 // CreateComment creates a comment by father_id(0 for root node), target_id,target_type
@@ -91,8 +90,8 @@ func GetComment(c echo.Context) error {
 	}
 	if req.TargetType == "problem" {
 		ids := req.TargetID
-		var commentsNoneRoot []models.Comment
-		var commentsRoot []models.Comment
+		var NotRootComments []models.Comment
+		var RootComments []models.Comment
 		query := base.DB.Model(&models.Comment{}).
 			Preload("User").
 			Preload("Reaction").
@@ -100,7 +99,7 @@ func GetComment(c echo.Context) error {
 			Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", "problem", uint(ids), 0)
 
 		//paginator
-		total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &commentsRoot)
+		total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &RootComments)
 		if err != nil {
 			if herr, ok := err.(utils.HttpError); ok {
 				return herr.Response(c)
@@ -111,7 +110,7 @@ func GetComment(c echo.Context) error {
 
 		//query roots' children, already been paginated
 		var RecursiveFatherIds []uint
-		for _, v := range commentsRoot {
+		for _, v := range RootComments {
 			RecursiveFatherIds = append(RecursiveFatherIds, v.ID)
 		}
 
@@ -119,24 +118,24 @@ func GetComment(c echo.Context) error {
 			Preload("User").
 			Preload("Reaction").
 			Order("updated_at desc").
-			Find(&commentsNoneRoot, "root_comment_id in ?", RecursiveFatherIds)
+			Find(&NotRootComments, "root_comment_id in ?", RecursiveFatherIds)
 
 		return c.JSON(http.StatusCreated, response.GetCommentResponse{
 			Message: "SUCCESS",
 			Error:   nil,
 			Data: struct {
-				ComsRoot     []models.Comment
-				ComsNoneRoot []models.Comment
+				RootComments     []models.Comment
+				NotRootComments []models.Comment
 				Total    int                        `json:"total"`
 				Count    int                        `json:"count"`
 				Offset   int                        `json:"offset"`
 				Prev     *string                    `json:"prev"`
 				Next     *string                    `json:"next"`
 			}{
-				commentsRoot,
-				commentsNoneRoot,
+				RootComments,
+				NotRootComments,
 				total,
-				len(commentsRoot),
+				len(RootComments),
 				req.Offset,
 				prevUrl,
 				nextUrl,
@@ -151,88 +150,96 @@ func GetComment(c echo.Context) error {
 
 // AddReaction makes a reaction, assert frontend have checked if the operation is illegaled
 func AddReaction(c echo.Context) error {
-	req := request.AddReacitonRequest{}
+	req := request.AddReactionRequest{}
 	if err, ok := utils.BindAndValidate(&req, c); !ok {
 		return err
 	}
 	user, ok := c.Get("user").(models.User)
-	targetID,_ := strconv.Atoi(c.Param("id"))
 	if !ok {
 		panic("could not convert my user into type models.User")
 	}
 
+	targetID := req.TargetID
 	compType := req.IFAddAction
 	typeId := req.EmojiType
-	query := base.DB.Model(&models.Comment{}).Preload("Reaction")
-	var comment models.Comment
-	query = query.First(&comment, uint(targetID))
-	maps := make(map[string][]uint)
-	if compType {
-		if comment.Reaction.Details == "" {
-			maps[typeId] = make([]uint, 2)
-			maps[typeId][0] = 1
-			maps[typeId][1] = uint(user.ID)
-		} else {
-			err := json.Unmarshal([]byte(comment.Reaction.Details), &maps)
-			if err != nil {
-				panic(err)
-			}
-			_, key := maps[typeId]
-			if key {
-				//operator is not zero
-				for _, v := range maps[typeId] {
-					if uint(v) == uint(user.ID) {
-						return c.JSON(http.StatusBadRequest, response.ErrorResp("can't action twice!", nil))
-					}
-				}
-				maps[typeId] = append(maps[typeId], uint(user.ID))
-				maps[typeId][0] += 1
-			} else {
+	targetType := req.TargetType
+
+	if targetType == "comment" {
+		var comment models.Comment
+		base.DB.Model(&models.Comment{}).
+			Preload("Reaction").
+			First(&comment, uint(targetID))
+
+		maps := make(map[string][]uint)
+		if compType {
+			if comment.Reaction.Details == "" {
 				maps[typeId] = make([]uint, 2)
 				maps[typeId][0] = 1
 				maps[typeId][1] = uint(user.ID)
-			}
-		}
-		jsonStr, err := json.Marshal(maps)
-		if err != nil {
-			panic("parse error")
-			panic(err)
-		}
-		comment.Reaction.Details = string(jsonStr)
-		base.DB.Save(&(comment.Reaction))
-	} else {
-		//delete action
-		if comment.Reaction.Details == "" {
-			panic("this should not happen, logic in error!")
-		} else {
-			json.Unmarshal([]byte(comment.Reaction.Details), &maps)
-			_, key := maps[typeId]
-			if key {
-				pos := -1
-				for k, v := range maps[typeId] {
-					//skip the first, standing for counts
-					if k != 0 && v == uint(user.ID) {
-						pos = k
-						break
-					}
-				}
-				if pos == -1 {
-					panic("should not happen, you have not actived")
-				} else {
-					maps[typeId] = append(maps[typeId][:pos], maps[typeId][pos+1:]...)
-					maps[typeId][0] -= 1
-				}
-				jsonStr, err := json.Marshal(maps)
+			} else {
+				err := json.Unmarshal([]byte(comment.Reaction.Details), &maps)
 				if err != nil {
-					panic("parse error")
 					panic(err)
 				}
-				comment.Reaction.Details = string(jsonStr)
-				base.DB.Save(&comment.Reaction)
+				_, key := maps[typeId]
+				if key {
+					//operator is not zero
+					for _, v := range maps[typeId] {
+						if uint(v) == uint(user.ID) {
+							return c.JSON(http.StatusBadRequest, response.ErrorResp("can't action twice!", nil))
+						}
+					}
+					maps[typeId] = append(maps[typeId], uint(user.ID))
+					maps[typeId][0] += 1
+				} else {
+					maps[typeId] = make([]uint, 2)
+					maps[typeId][0] = 1
+					maps[typeId][1] = uint(user.ID)
+				}
+			}
+			jsonStr, err := json.Marshal(maps)
+			if err != nil {
+				panic("parse error")
+				panic(err)
+			}
+			comment.Reaction.Details = string(jsonStr)
+			base.DB.Save(&(comment.Reaction))
+		} else {
+			//delete action
+			if comment.Reaction.Details == "" {
+				panic("this should not happen, logic in error!")
 			} else {
-				return c.JSON(http.StatusBadRequest, response.ErrorResp("you have not actived!", nil))
+				json.Unmarshal([]byte(comment.Reaction.Details), &maps)
+				_, key := maps[typeId]
+				if key {
+					pos := -1
+					for k, v := range maps[typeId] {
+						//skip the first, standing for counts
+						if k != 0 && v == uint(user.ID) {
+							pos = k
+							break
+						}
+					}
+					if pos == -1 {
+						panic("should not happen, you have not actived")
+					} else {
+						maps[typeId] = append(maps[typeId][:pos], maps[typeId][pos+1:]...)
+						maps[typeId][0] -= 1
+					}
+					jsonStr, err := json.Marshal(maps)
+					if err != nil {
+						panic("parse error")
+						panic(err)
+					}
+					comment.Reaction.Details = string(jsonStr)
+					base.DB.Save(&comment.Reaction)
+				} else {
+					return c.JSON(http.StatusBadRequest, response.ErrorResp("you have not actived!", nil))
+				}
 			}
 		}
+	} else {
+		// todo: implement this
 	}
 
 	return c.JSON(http.StatusCreated, response.AddReactionResponse{

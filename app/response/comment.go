@@ -16,8 +16,8 @@ type GetCommentResponse struct {
 	Message string      `json:"message"`
 	Error   interface{} `json:"error"`
 	Data    struct {
-		ComsRoot     []models.Comment
-		ComsNoneRoot []models.Comment
+		RootComments     []models.Comment
+		NotRootComments []models.Comment
 		Total    int                        `json:"total"`
 		Count    int                        `json:"count"`
 		Offset   int                        `json:"offset"`
