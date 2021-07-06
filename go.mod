@@ -3,7 +3,6 @@ module github.com/EduOJ/backend
 go 1.14
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/duo-labs/webauthn v0.0.0-20200714211715-1daaee874e43
 	github.com/fatih/color v1.10.0
 	github.com/gabriel-vasile/mimetype v1.1.2
