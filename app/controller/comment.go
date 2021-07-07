@@ -8,6 +8,7 @@ import (
 	"github.com/EduOJ/backend/base/utils"
 	"github.com/EduOJ/backend/database/models"
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
 	"net/http"
 )
 
@@ -23,12 +24,6 @@ func CreateComment(c echo.Context) error {
 		panic("could not convert my user into type models.User")
 	}
 
-	TargetID := req.TargetID
-	TargetType := req.TargetType
-
-	content := req.Content
-
-	fatherID := req.FatherID
 
 	newReaction := models.Reaction{
 		TargetType: "comment",
@@ -37,17 +32,17 @@ func CreateComment(c echo.Context) error {
 
 	var newComment models.Comment
 
-	if fatherID != 0 {
+	if req.FatherID != 0 {
 		//father is comment
 		var father models.Comment
-		base.DB.Model(&models.Comment{}).First(&father, uint(fatherID))
+		base.DB.Model(&models.Comment{}).First(&father, uint(req.FatherID))
 		newComment := models.Comment{
 			User:       user,
 			Reaction:   newReaction,
-			FatherID:   uint(fatherID),
+			FatherID:   uint(req.FatherID),
 			TargetType: father.TargetType,
 			TargetID:   father.TargetID,
-			Content:    content,
+			Content:    req.Content,
 		}
 		if father.FatherID != 0 {
 			// father is comment node
@@ -63,9 +58,9 @@ func CreateComment(c echo.Context) error {
 		newComment := models.Comment{
 			User:       user,
 			Reaction:   newReaction,
-			TargetType: TargetType,
-			TargetID:   uint(TargetID),
-			Content:    content,
+			TargetType: req.TargetType,
+			TargetID:   uint(req.TargetID),
+			Content:    req.Content,
 		}
 		utils.PanicIfDBError(base.DB.Save(&newComment), "could not save comment")
 	}
@@ -89,14 +84,13 @@ func GetComment(c echo.Context) error {
 		return err
 	}
 	if req.TargetType == "problem" {
-		ids := req.TargetID
 		var NotRootComments []models.Comment
 		var RootComments []models.Comment
 		query := base.DB.Model(&models.Comment{}).
 			Preload("User").
 			Preload("Reaction").
 			Order("ID").
-			Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", "problem", uint(ids), 0)
+			Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", "problem", uint(req.TargetID), 0)
 
 		//paginator
 		total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &RootComments)
@@ -159,61 +153,55 @@ func AddReaction(c echo.Context) error {
 		panic("could not convert my user into type models.User")
 	}
 
-	targetID := req.TargetID
-	compType := req.IFAddAction
-	typeId := req.EmojiType
-	targetType := req.TargetType
-
-	if targetType == "comment" {
+	if req.TargetType == "comment" {
 		var comment models.Comment
 		base.DB.Model(&models.Comment{}).
 			Preload("Reaction").
-			First(&comment, uint(targetID))
+			First(&comment, uint(req.TargetID))
 
 		maps := make(map[string][]uint)
-		if compType {
+		if req.IFAddAction {
 			if comment.Reaction.Details == "" {
-				maps[typeId] = make([]uint, 2)
-				maps[typeId][0] = 1
-				maps[typeId][1] = uint(user.ID)
+				maps[req.EmojiType] = make([]uint, 2)
+				maps[req.EmojiType][0] = 1
+				maps[req.EmojiType][1] = uint(user.ID)
 			} else {
 				err := json.Unmarshal([]byte(comment.Reaction.Details), &maps)
 				if err != nil {
-					panic(err)
+					panic(errors.Wrap(err, "could not marshal reaction map"))
 				}
-				_, key := maps[typeId]
+				_, key := maps[req.EmojiType]
 				if key {
 					//operator is not zero
-					for _, v := range maps[typeId] {
+					for _, v := range maps[req.EmojiType] {
 						if uint(v) == uint(user.ID) {
 							return c.JSON(http.StatusBadRequest, response.ErrorResp("can't action twice!", nil))
 						}
 					}
-					maps[typeId] = append(maps[typeId], uint(user.ID))
-					maps[typeId][0] += 1
+					maps[req.EmojiType] = append(maps[req.EmojiType], uint(user.ID))
+					maps[req.EmojiType][0] += 1
 				} else {
-					maps[typeId] = make([]uint, 2)
-					maps[typeId][0] = 1
-					maps[typeId][1] = uint(user.ID)
+					maps[req.EmojiType] = make([]uint, 2)
+					maps[req.EmojiType][0] = 1
+					maps[req.EmojiType][1] = uint(user.ID)
 				}
 			}
 			jsonStr, err := json.Marshal(maps)
 			if err != nil {
-				panic("parse error")
-				panic(err)
+				panic(errors.Wrap(err, "could not marshal reaction map"))
 			}
 			comment.Reaction.Details = string(jsonStr)
-			base.DB.Save(&(comment.Reaction))
+			utils.PanicIfDBError(base.DB.Save(&(comment.Reaction)), "save reaction error")
 		} else {
 			//delete action
 			if comment.Reaction.Details == "" {
 				panic("this should not happen, logic in error!")
 			} else {
 				json.Unmarshal([]byte(comment.Reaction.Details), &maps)
-				_, key := maps[typeId]
+				_, key := maps[req.EmojiType]
 				if key {
 					pos := -1
-					for k, v := range maps[typeId] {
+					for k, v := range maps[req.EmojiType] {
 						//skip the first, standing for counts
 						if k != 0 && v == uint(user.ID) {
 							pos = k
@@ -223,16 +211,15 @@ func AddReaction(c echo.Context) error {
 					if pos == -1 {
 						panic("should not happen, you have not actived")
 					} else {
-						maps[typeId] = append(maps[typeId][:pos], maps[typeId][pos+1:]...)
-						maps[typeId][0] -= 1
+						maps[req.EmojiType] = append(maps[req.EmojiType][:pos], maps[req.EmojiType][pos+1:]...)
+						maps[req.EmojiType][0] -= 1
 					}
 					jsonStr, err := json.Marshal(maps)
 					if err != nil {
-						panic("parse error")
-						panic(err)
+						panic(errors.Wrap(err, "could not marshal reaction map"))
 					}
 					comment.Reaction.Details = string(jsonStr)
-					base.DB.Save(&comment.Reaction)
+					utils.PanicIfDBError(base.DB.Save(&comment.Reaction), "save reaction error")
 				} else {
 					return c.JSON(http.StatusBadRequest, response.ErrorResp("you have not actived!", nil))
 				}
