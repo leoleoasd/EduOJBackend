@@ -26,3 +26,15 @@ type Comment struct {
 	UpdatedAt time.Time      `gorm:"index"`
 	DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
 }
+
+
+
+func (comment *Comment) AfterDelete(tx *gorm.DB) (err error) {
+	if comment.ID == 0 {
+		return nil
+	}
+	if err := tx.Where("father_id = ?", comment.ID).Delete(&Comment{}).Error; err != nil {
+		return err
+	}
+	return tx.Where("id = ?", comment.ReactionID).Delete(&Reaction{}).Error
+}

@@ -140,6 +140,7 @@ func Register(e *echo.Echo) {
 	comment.POST("/comment", controller.CreateComment).Name = "comment.createComment"
 	comment.GET("/comments", controller.GetComment).Name = "comment.getComment"
 	comment.POST("/comment/:id/reaction", controller.AddReaction).Name = "comment.addReaction"
+	comment.DELETE("/comment/:id", controller.DeleteComment).Name = "comment.deleteComment"
 
 	// submission APIs
 	submission := api.Group("",

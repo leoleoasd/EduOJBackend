@@ -19,7 +19,6 @@ type GetCommentResponse struct {
 		RootComments     []models.Comment
 		NotRootComments []models.Comment
 		Total    int                        `json:"total"`
-		Count    int                        `json:"count"`
 		Offset   int                        `json:"offset"`
 		Prev     *string                    `json:"prev"`
 		Next     *string                    `json:"next"`

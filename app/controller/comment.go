@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"net/http"
+	"strconv"
 )
 
 // CreateComment creates a comment by father_id(0 for root node), target_id,target_type
@@ -91,7 +92,6 @@ func GetComment(c echo.Context) error {
 			Preload("Reaction").
 			Order("ID").
 			Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", "problem", uint(req.TargetID), 0)
-
 		//paginator
 		total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &RootComments)
 		if err != nil {
@@ -121,7 +121,6 @@ func GetComment(c echo.Context) error {
 				RootComments     []models.Comment
 				NotRootComments []models.Comment
 				Total    int                        `json:"total"`
-				Count    int                        `json:"count"`
 				Offset   int                        `json:"offset"`
 				Prev     *string                    `json:"prev"`
 				Next     *string                    `json:"next"`
@@ -129,7 +128,6 @@ func GetComment(c echo.Context) error {
 				RootComments,
 				NotRootComments,
 				total,
-				len(RootComments),
 				req.Offset,
 				prevUrl,
 				nextUrl,
@@ -237,6 +235,26 @@ func AddReaction(c echo.Context) error {
 		}{
 			"you have successfully "+ req.EmojiType + "ed the comment",
 		},
+	})
+
+}
+
+// DeleteComment deletes a comment with id, and we have hook in database/models/comment.go to recursive delete it's children
+func DeleteComment(c echo.Context) error {
+	commentID,err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		panic(errors.Wrap(err, "could find target comment id"))
+	}
+	var comment models.Comment
+	base.DB.Model(&models.Comment{}).
+		Preload("Reaction").
+		First(&comment, uint(commentID))
+	utils.PanicIfDBError(base.DB.Delete(&comment), "could not delete target comment")
+
+	return c.JSON(http.StatusOK, response.Response{
+		Message: "SUCCESS",
+		Error:   nil,
+		Data:    nil,
 	})
 
 }
