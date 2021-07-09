@@ -135,6 +135,13 @@ func Register(e *echo.Echo) {
 	updateProblem.DELETE("/admin/problem/:id/test_case/all", controller.DeleteTestCases).Name = "problem.deleteTestCases"
 	updateProblem.DELETE("/admin/problem/:id/test_case/:test_case_id", controller.DeleteTestCase).Name = "problem.deleteTestCase"
 
+	// comment APIs
+	comment := api.Group("", middleware.Logged)
+	comment.POST("/comment", controller.CreateComment).Name = "comment.createComment"
+	comment.GET("/comments", controller.GetComment).Name = "comment.getComment"
+	comment.POST("/comment/:id/reaction", controller.AddReaction).Name = "comment.addReaction"
+	comment.DELETE("/comment/:id", controller.DeleteComment).Name = "comment.deleteComment"
+
 	// submission APIs
 	submission := api.Group("",
 		middleware.ValidateParams(map[string]string{

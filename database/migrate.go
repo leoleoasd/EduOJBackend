@@ -1173,6 +1173,85 @@ func GetMigration() *gormigrate.Gormigrate {
 				return tx.Migrator().DropColumn(&Grade{}, "ClassID")
 			},
 		},
+		{
+			ID: "create_reactions_table",
+			Migrate: func(tx *gorm.DB) error {
+				type Reaction struct {
+					ID         uint `gorm:"primaryKey"`
+					TargetType string
+					TargetID   uint
+
+					Details string
+
+					CreatedAt time.Time `json:"created_at"`
+					UpdatedAt time.Time `json:"-"`
+
+					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
+				}
+				return tx.AutoMigrate(&Reaction{})
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Migrator().DropTable("reactions")
+			},
+		},
+		{
+			ID: "create_comments_table",
+			Migrate: func(tx *gorm.DB) error {
+				type Reaction struct {
+					ID         uint `gorm:"primaryKey"`
+					TargetType string
+					TargetID   uint
+
+					Details string
+
+					CreatedAt time.Time `json:"created_at"`
+					UpdatedAt time.Time `json:"-"`
+
+					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
+				}
+
+				type User struct {
+					ID       uint   `gorm:"primaryKey" json:"id"`
+					Username string `gorm:"unique_index" json:"username" validate:"required,max=30,min=5,username"`
+					Nickname string `gorm:"index:nickname" json:"nickname"`
+					Email    string `gorm:"unique_index" json:"email"`
+					Password string `json:"-"`
+
+					RoleLoaded bool `gorm:"-" json:"-"`
+
+					CreatedAt time.Time      `json:"created_at"`
+					UpdatedAt time.Time      `json:"-"`
+					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
+				}
+
+				type Comment struct {
+					ID uint `gorm:"primaryKey"`
+
+					UserID uint
+					User   User `gorm:"foreignKey:UserID"`
+
+					ReactionID uint
+					Reaction   Reaction `gorm:"foreignKey:ReactionID" gorm:"polymorphic:Target"`
+
+					Content string
+
+					TargetID   uint
+					TargetType string
+
+					FatherID      uint
+					RootCommentID uint
+
+					CreatedAt time.Time      `json:"created_at"`
+					UpdatedAt time.Time      `gorm:"index"`
+					DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
+				}
+
+				return tx.AutoMigrate(&Comment{})
+			},
+			Rollback: func(tx *gorm.DB) (err error) {
+				return tx.Migrator().DropTable("comments")
+			},
+		},
 	})
 }
 
