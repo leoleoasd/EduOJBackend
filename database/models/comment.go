@@ -19,15 +19,13 @@ type Comment struct {
 	TargetID   uint
 	TargetType string
 
-	FatherID          uint
+	FatherID      uint
 	RootCommentID uint
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `gorm:"index"`
 	DeletedAt gorm.DeletedAt `sql:"index" json:"deleted_at"`
 }
-
-
 
 func (comment *Comment) AfterDelete(tx *gorm.DB) (err error) {
 	if comment.ID == 0 {

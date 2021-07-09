@@ -25,7 +25,6 @@ func CreateComment(c echo.Context) error {
 		panic("could not convert my user into type models.User")
 	}
 
-
 	newReaction := models.Reaction{
 		TargetType: "comment",
 	}
@@ -84,60 +83,53 @@ func GetComment(c echo.Context) error {
 	if err, ok := utils.BindAndValidate(&req, c); !ok {
 		return err
 	}
-	if req.TargetType == "problem" {
-		var NotRootComments []models.Comment
-		var RootComments []models.Comment
-		query := base.DB.Model(&models.Comment{}).
-			Preload("User").
-			Preload("Reaction").
-			Order("ID").
-			Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", "problem", uint(req.TargetID), 0)
-		//paginator
-		total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &RootComments)
-		if err != nil {
-			if herr, ok := err.(utils.HttpError); ok {
-				return herr.Response(c)
-			}
-			panic(err)
+	var NotRootComments []models.Comment
+	var RootComments []models.Comment
+	query := base.DB.Model(&models.Comment{}).
+		Preload("User").
+		Preload("Reaction").
+		Order("ID").
+		Where(" target_type = (?) AND target_id = (?) AND father_id = (?)", req.TargetType, uint(req.TargetID), 0)
+	//paginator
+	total, prevUrl, nextUrl, err := utils.Paginator(query, req.Limit, req.Offset, c.Request().URL, &RootComments)
+	if err != nil {
+		if herr, ok := err.(utils.HttpError); ok {
+			return herr.Response(c)
 		}
-
-
-		//query roots' children, already been paginated
-		var RecursiveFatherIds []uint
-		for _, v := range RootComments {
-			RecursiveFatherIds = append(RecursiveFatherIds, v.ID)
-		}
-
-		base.DB.Model(&models.Comment{}).
-			Preload("User").
-			Preload("Reaction").
-			Order("updated_at desc").
-			Find(&NotRootComments, "root_comment_id in ?", RecursiveFatherIds)
-
-		return c.JSON(http.StatusCreated, response.GetCommentResponse{
-			Message: "SUCCESS",
-			Error:   nil,
-			Data: struct {
-				RootComments     []models.Comment
-				NotRootComments []models.Comment
-				Total    int                        `json:"total"`
-				Offset   int                        `json:"offset"`
-				Prev     *string                    `json:"prev"`
-				Next     *string                    `json:"next"`
-			}{
-				RootComments,
-				NotRootComments,
-				total,
-				req.Offset,
-				prevUrl,
-				nextUrl,
-			},
-		})
-	} else {
-		//todo: implement this.
-		panic("we don't have this function now")
-		return c.JSON(http.StatusBadRequest, response.ErrorResp("INVALID_STATUS", nil))
+		panic(err)
 	}
+
+	//query roots' children, already been paginated
+	var RecursiveFatherIds []uint
+	for _, v := range RootComments {
+		RecursiveFatherIds = append(RecursiveFatherIds, v.ID)
+	}
+
+	base.DB.Model(&models.Comment{}).
+		Preload("User").
+		Preload("Reaction").
+		Order("updated_at desc").
+		Find(&NotRootComments, "root_comment_id in ?", RecursiveFatherIds)
+
+	return c.JSON(http.StatusCreated, response.GetCommentResponse{
+		Message: "SUCCESS",
+		Error:   nil,
+		Data: struct {
+			RootComments    []models.Comment
+			NotRootComments []models.Comment
+			Total           int     `json:"total"`
+			Offset          int     `json:"offset"`
+			Prev            *string `json:"prev"`
+			Next            *string `json:"next"`
+		}{
+			RootComments,
+			NotRootComments,
+			total,
+			req.Offset,
+			prevUrl,
+			nextUrl,
+		},
+	})
 }
 
 // AddReaction makes a reaction, assert frontend have checked if the operation is illegaled
@@ -233,7 +225,7 @@ func AddReaction(c echo.Context) error {
 		Data: struct {
 			Content string
 		}{
-			"you have successfully "+ req.EmojiType + "ed the comment",
+			"you have successfully " + req.EmojiType + "ed the comment",
 		},
 	})
 
@@ -241,14 +233,29 @@ func AddReaction(c echo.Context) error {
 
 // DeleteComment deletes a comment with id, and we have hook in database/models/comment.go to recursive delete it's children
 func DeleteComment(c echo.Context) error {
-	commentID,err := strconv.Atoi(c.Param("id"))
+	user, ok := c.Get("user").(models.User)
+	if !ok {
+		panic("could not convert my user into type models.User")
+	}
+
+
+	commentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		panic(errors.Wrap(err, "could find target comment id"))
 	}
+
+
 	var comment models.Comment
 	base.DB.Model(&models.Comment{}).
 		Preload("Reaction").
 		First(&comment, uint(commentID))
+
+	//check whether has role to delete comemnt
+	canDeleteComment := user.HasRole("admin") || (comment.UserID == user.ID)
+	if canDeleteComment == false {
+		return c.JSON(http.StatusBadRequest, response.ErrorResp("you don't have permission to delete this comment", nil))
+	}
+
 	utils.PanicIfDBError(base.DB.Delete(&comment), "could not delete target comment")
 
 	return c.JSON(http.StatusOK, response.Response{

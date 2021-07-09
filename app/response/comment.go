@@ -16,12 +16,12 @@ type GetCommentResponse struct {
 	Message string      `json:"message"`
 	Error   interface{} `json:"error"`
 	Data    struct {
-		RootComments     []models.Comment
+		RootComments    []models.Comment
 		NotRootComments []models.Comment
-		Total    int                        `json:"total"`
-		Offset   int                        `json:"offset"`
-		Prev     *string                    `json:"prev"`
-		Next     *string                    `json:"next"`
+		Total           int     `json:"total"`
+		Offset          int     `json:"offset"`
+		Prev            *string `json:"prev"`
+		Next            *string `json:"next"`
 	} `json:"data"`
 }
 
